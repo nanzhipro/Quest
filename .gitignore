@@ -66,3 +66,9 @@ fastlane/test_output
 .env
 .env.*
 !.env.example
+
+# SSL certificates
+ssl/
+*.crt
+*.key
+*.pem

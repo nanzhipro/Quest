@@ -15,34 +15,43 @@
 # Run migrations: docker compose run migrate
 #    Stop all: docker compose down (add -v to wipe db)
 #
-version: '3.7'
+version: "3.7"
 
 # 定义持久化存储卷
 volumes:
-  db_data:  # PostgreSQL数据持久化存储，即使容器删除数据也不会丢失
+  db_data: # PostgreSQL数据持久化存储，即使容器删除数据也不会丢失
 
 # 定义共享环境变量，用于服务间共享配置
 # 在 docker-compose.yaml 文件所在的同一目录下创建一个 .env 文件。Docker Compose 会自动读取这个文件中的环境变量。
 x-shared_environment: &shared_environment
-  LOG_LEVEL: ${LOG_LEVEL:-debug}  # 日志级别，未设置时默认为debug
-  DATABASE_HOST: db               # 数据库主机名，使用服务名称
+  LOG_LEVEL: ${LOG_LEVEL:-debug} # 日志级别，未设置时默认为debug
+  DATABASE_HOST: db # 数据库主机名，使用服务名称
   DATABASE_NAME: ${VAPOR_DATABASE_NAME}
   DATABASE_USERNAME: ${VAPOR_DATABASE_USERNAME}
   DATABASE_PASSWORD: ${VAPOR_DATABASE_PASSWORD}
-  
+
 services:
   # Vapor应用服务
   app:
-    image: quest:latest  # 容器镜像名称
+    image: quest:latest # 容器镜像名称
     build:
-      context: .  # 使用当前目录作为构建上下文
+      context: . # 使用当前目录作为构建上下文
     environment:
-      <<: *shared_environment  # 引用共享环境变量
+      <<: *shared_environment # 引用共享环境变量
     depends_on:
-      - db  # 确保数据库服务先启动
-    command: ["serve", "--env", "production", "--hostname", "0.0.0.0", "--port", "8080"]
+      - db # 确保数据库服务先启动
+    command:
+      [
+        "serve",
+        "--env",
+        "production",
+        "--hostname",
+        "0.0.0.0",
+        "--port",
+        "8080",
+      ]
     networks:
-      - app-network  # 连接到应用网络
+      - app-network # 连接到应用网络
 
   # Nginx反向代理服务
   nginx:
@@ -50,13 +59,13 @@ services:
       context: ./Docs/nginxconfig.io-tiwenlab.com
       dockerfile: Dockerfile
     ports:
-      - "80:80"    # HTTP端口映射
-      - "443:443"  # HTTPS端口映射
+      - "80:80" # HTTP端口映射
+      - "443:443" # HTTPS端口映射
     volumes:
-      - ./Docs/nginxconfig.io-tiwenlab.com/ssl:/etc/nginx/ssl  # SSL证书目录映射
-      - ./Public:/var/www/tiwenlab.com/public  # 静态文件目录映射
+      - ${SSL_CERT_DIR}:/etc/nginx/ssl # SSL证书目录映射
+      - ./Public:/var/www/tiwenlab.com/public # 静态文件目录映射
     depends_on:
-      - app  # 确保应用服务先启动
+      - app # 确保应用服务先启动
     networks:
       - app-network
 
@@ -69,9 +78,9 @@ services:
       <<: *shared_environment
     depends_on:
       - db
-    command: ["migrate", "--yes"]  # 执行数据库迁移
+    command: ["migrate", "--yes"] # 执行数据库迁移
     deploy:
-      replicas: 0  # 默认不部署，仅在需要时手动运行
+      replicas: 0 # 默认不部署，仅在需要时手动运行
     networks:
       - app-network
 
@@ -84,28 +93,28 @@ services:
       <<: *shared_environment
     depends_on:
       - db
-    command: ["migrate", "--revert", "--yes"]  # 回滚上一次迁移
+    command: ["migrate", "--revert", "--yes"] # 回滚上一次迁移
     deploy:
-      replicas: 0  # 默认不部署，仅在需要时手动运行
+      replicas: 0 # 默认不部署，仅在需要时手动运行
     networks:
       - app-network
 
   # PostgreSQL数据库服务
   db:
-    image: postgres:16-alpine  # 使用轻量级Alpine版本
+    image: postgres:16-alpine # 使用轻量级Alpine版本
     volumes:
-      - db_data:/var/lib/postgresql/data/pgdata  # 数据持久化
+      - db_data:/var/lib/postgresql/data/pgdata # 数据持久化
     environment:
-      PGDATA: /var/lib/postgresql/data/pgdata  # 数据目录
+      PGDATA: /var/lib/postgresql/data/pgdata # 数据目录
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - '5432:5432'  # 数据库端口映射，仅用于开发环境
+      - "5432:5432" # 数据库端口映射，仅用于开发环境
     networks:
       - app-network
 
 # 定义网络配置
 networks:
   app-network:
-    driver: bridge  # 使用bridge网络驱动，适用于单机部署
+    driver: bridge # 使用bridge网络驱动，适用于单机部署
