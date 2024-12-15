@@ -55,19 +55,20 @@ services:
 
   # Nginx反向代理服务
   nginx:
-    build:
-      context: ./Docs/nginxconfig.io-tiwenlab.com
-      dockerfile: Dockerfile
+    image: nginx:alpine # 使用官方nginx镜像的alpine版本
     ports:
-      - "80:80" # HTTP端口映射
-      - "443:443" # HTTPS端口映射
+      - "80:80"
+      - "443:443"
     volumes:
-      - ${SSL_CERT_DIR}:/etc/nginx/ssl # SSL证书目录映射
-      - ./Public:/var/www/tiwenlab.com/public # 静态文件目录映射
+      - ./Docs/nginxconfig.io-tiwenlab.com/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./Docs/nginxconfig.io-tiwenlab.com/conf.d:/etc/nginx/conf.d:ro
+      - ${SSL_CERT_DIR:-./Docs/ssl}:/etc/nginx/ssl:ro # 提供默认值
+      - ./Public:/var/www/tiwenlab.com/public:ro
     depends_on:
-      - app # 确保应用服务先启动
+      - app
     networks:
       - app-network
+    restart: unless-stopped # 添加重启策略
 
   # 数据库迁移服务
   migrate:
@@ -117,4 +118,4 @@ services:
 # 定义网络配置
 networks:
   app-network:
-    driver: bridge # 使用bridge网络驱动，适用于单机部署
+    driver: bridge # 使用bridge��络驱动，适用于单机部署
