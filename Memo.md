@@ -174,7 +174,7 @@
 
 ## 向后兼容
 
-1. 添加新字段而不是修改现有字段
+1. 添加新字段而不是修改 �� 有字段
 2. 保持现有字段的数据类型
 3. 不删除必填字段
 4. 提供默认值处理
@@ -250,7 +250,7 @@
 
 ## API 使用
 
-1. 使用正确的 JWT API���signers.sign/verify）
+1. 使用正确的 JWT API（signers.sign/verify）
 2. 处理所有可能的错误
 3. 实现适当的错误恢复
 4. 记录操作日志
@@ -284,3 +284,46 @@
 2. 实现自定义验证器
 3. 提供清晰的错误消息
 4. 处理所有边缘情况
+
+# Docker 部署注意事项
+
+## Nginx 服务启动检查清单
+
+1. 确保以下目录和文件存在：
+
+   - Docs/nginxconfig.io-tiwenlab.com/nginx.conf
+   - Docs/nginxconfig.io-tiwenlab.com/conf.d/
+   - Docs/ssl/ (或自定义 SSL 证书目录)
+   - Public/
+
+2. 启动命令顺序： `bash
+docker compose build    # 构建镜像
+docker compose up -d    # 启动所有服务   `
+
+3. 故障排查命令： `bash
+docker compose ps       # 查看服务状态
+docker compose logs nginx  # 查看 nginx 日志
+docker compose logs app    # 查看应用日志   `
+
+4. 健康检查：
+   - Nginx 服务每 30 秒进行一次配置测试
+   - 应用服务每 30 秒检查一次健康状态
+
+# Docker 部署故障排查
+
+## 端口冲突解决方案
+
+1. 检查端口占用： `bash
+sudo lsof -i :<port>
+sudo netstat -tulpn | grep <port>   `
+
+2. 解决方案：
+
+   - 停止冲突服务：`sudo systemctl stop <service>`
+   - 修改端口映射：在 docker-compose.yml 中更改端口
+   - 终止占用进程：`sudo kill <PID>`
+
+3. PostgreSQL 特定问题：
+   - 检查服务状态：`sudo systemctl status postgresql`
+   - 停止服务：`sudo systemctl stop postgresql`
+   - 禁用自启动：`sudo systemctl disable postgresql`

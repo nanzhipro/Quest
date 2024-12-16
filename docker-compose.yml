@@ -52,6 +52,12 @@ services:
       ]
     networks:
       - app-network # 连接到应用网络
+    healthcheck: # 为 app 服务添加健康检查
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   # Nginx反向代理服务
   nginx:
@@ -65,10 +71,17 @@ services:
       - ${SSL_CERT_DIR:-./Docs/ssl}:/etc/nginx/ssl:ro # 提供默认值
       - ./Public:/var/www/tiwenlab.com/public:ro
     depends_on:
-      - app
+      app:
+        condition: service_healthy # 添加健康检��依赖
     networks:
       - app-network
     restart: unless-stopped # 添加重启策略
+    healthcheck: # 添加健康检查
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   # 数据库迁移服务
   migrate:
@@ -118,4 +131,4 @@ services:
 # 定义网络配置
 networks:
   app-network:
-    driver: bridge # 使用bridge��络驱动，适用于单机部署
+    driver: bridge # 使用bridge络驱动，适用于单机部署
