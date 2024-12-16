@@ -3,6 +3,7 @@ import Fluent
 import FluentPostgresDriver
 import Leaf
 import Vapor
+import JWT
 
 // configures your application
 public func configure(_ app: Application) async throws {
@@ -22,6 +23,12 @@ public func configure(_ app: Application) async throws {
 
     app.views.use(.leaf)
 
+    // 配置 JWT
+    let jwksString = Environment.get("JWT_SECRET") ?? "your-default-secret-key"
+    if Environment.get("JWT_SECRET") == nil {
+        app.logger.warning("JWT_SECRET not found in environment, using default key")
+    }
+    try app.jwt.signers.use(.hs256(key: jwksString))
 
     // register routes
     try routes(app)

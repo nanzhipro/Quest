@@ -54,7 +54,6 @@ final class MemberTests: XCTestCase {
     // MARK: - Tests
     
     func testRegisterMember() throws {
-        // 准备测试数据
         let registerData = CreateMemberDTO(
             username: "newuser",
             email: "new@example.com",
@@ -63,16 +62,30 @@ final class MemberTests: XCTestCase {
             tierId: testTier.id!
         )
         
-        try app.test(.POST, "members/register", beforeRequest: { req in
+        try app.test(.POST, "api/v1/members/register", beforeRequest: { req in
             try req.content.encode(registerData)
         }, afterResponse: { res in
             XCTAssertEqual(res.status, .ok)
             
             let response = try res.content.decode(MemberResponse.self)
+            XCTAssertNotNil(response.id)
             XCTAssertEqual(response.username, registerData.username)
             XCTAssertEqual(response.email, registerData.email)
             XCTAssertEqual(response.phoneNumber, registerData.phoneNumber)
             XCTAssertEqual(response.tierName, testTier.name)
+        })
+    }
+    
+    func testLogin() throws {
+        let member = try createTestMember()
+        
+        let loginData = ["email": member.email, "password": "password123"]
+        
+        try app.test(.POST, "api/v1/members/login", beforeRequest: { req in
+            try req.content.encode(loginData)
+        }, afterResponse: { res in
+            XCTAssertEqual(res.status, .ok)
+            XCTAssertNotNil(res.body.string)
         })
     }
     
@@ -144,7 +157,7 @@ final class MemberTests: XCTestCase {
         }, afterResponse: { res in
             XCTAssertEqual(res.status, .noContent)
             
-            // 验证会员已被删除
+            // 验证会员已被��除
             let deletedMember = try? Member.find(member.id!, on: app.db).wait()
             XCTAssertNil(deletedMember)
         })
@@ -181,7 +194,7 @@ final class MemberTests: XCTestCase {
     }
     
     func testUnauthorizedAccess() throws {
-        try app.test(.GET, "members", afterResponse: { res in
+        try app.test(.GET, "api/v1/members", afterResponse: { res in
             XCTAssertEqual(res.status, .unauthorized)
         })
     }
@@ -195,7 +208,7 @@ final class MemberTests: XCTestCase {
             tierId: UUID() // 使用一个不存在的会员等级ID
         )
         
-        try app.test(.POST, "members/register", beforeRequest: { req in
+        try app.test(.POST, "api/v1/members/register", beforeRequest: { req in
             try req.content.encode(registerData)
         }, afterResponse: { res in
             XCTAssertEqual(res.status, .notFound)

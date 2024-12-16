@@ -9,6 +9,11 @@ func routes(_ app: Application) throws {
     app.get("hello") { req async -> String in
         "Hello, world!"
     }
-
-    try app.register(collection: TodoController())
+    
+    // API 路由组
+    let api = app.grouped("api", "v1")
+    
+    // 注册 API 控制器
+    try api.register(collection: MemberController())
+    try app.register(collection: TodoController()) // 保持原有的非 API 路由
 }

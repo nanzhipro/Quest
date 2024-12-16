@@ -57,19 +57,14 @@ struct MemberController: RouteCollection {
     }
     
     @Sendable
-    func login(req: Request) async throws -> String {
-        // 定义登录请求结构
-        struct LoginRequest: Content {
-            let email: String
-            let password: String
-        }
-        
+    func login(req: Request) async throws -> LoginResponse {
         // 解码登录请求
         let loginRequest = try req.content.decode(LoginRequest.self)
         
         // 查找用户
         guard let member = try await Member.query(on: req.db)
             .filter(\.$email, .equal, loginRequest.email)
+            .with(\.$tier)
             .first() else {
             throw Abort(.unauthorized, reason: "Invalid credentials")
         }
@@ -89,8 +84,12 @@ struct MemberController: RouteCollection {
         }
         
         // 生成令牌
-        let token = try member.generateToken()
-        return token
+        let token = try member.generateToken(req.application)
+        
+        return LoginResponse(
+            token: token,
+            member: MemberResponse(member: member, tierName: member.tier.name)
+        )
     }
     
     @Sendable
