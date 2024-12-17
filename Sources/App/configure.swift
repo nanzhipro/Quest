@@ -28,7 +28,22 @@ public func configure(_ app: Application) async throws {
     if Environment.get("JWT_SECRET") == nil {
         app.logger.warning("JWT_SECRET not found in environment, using default key")
     }
-    try app.jwt.signers.use(.hs256(key: jwksString))
+    app.jwt.signers.use(.hs256(key: jwksString))
+
+    // 配置环境变量
+    let llmApiKey = Environment.get("LLM_API_KEY") ?? "your-api-key"
+    if Environment.get("LLM_API_KEY") == nil {
+        app.logger.warning("LLM_API_KEY not found in environment, using default key")
+        Environment.process.LLM_API_KEY = llmApiKey
+    }
+    
+    let llmApiEndpoint = Environment.get("LLM_API_ENDPOINT") ?? "https://api.llm-service.com/v1/analyze"
+    if Environment.get("LLM_API_ENDPOINT") == nil {
+        app.logger.warning("LLM_API_ENDPOINT not found in environment, using default endpoint")
+        Environment.process.LLM_API_ENDPOINT = llmApiEndpoint
+    }
+    
+    app.logger.info("LLM configuration: endpoint=\(llmApiEndpoint)")
 
     // register routes
     try routes(app)

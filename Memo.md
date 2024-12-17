@@ -108,7 +108,7 @@
 ## 过滤器语法
 
 1. 使用标准三参数语法: .filter(\.$field, .operator, value)
-2. �� 用比较运算符直接比较
+2. 使用比较运算符直接比较
 3. 使用类型安全的字段路径
 4. 正确处理可选值
 
@@ -174,7 +174,7 @@
 
 ## 向后兼容
 
-1. 添加新字段而不是修改 �� 有字段
+1. 添加新字段而不是修改现有字段
 2. 保持现有字段的数据类型
 3. 不删除必填字段
 4. 提供默认值处理
@@ -305,7 +305,7 @@ docker compose ps       # 查看服务状态
 docker compose logs nginx  # 查看 nginx 日志
 docker compose logs app    # 查看应用日志   `
 
-4. 健康检查：
+4. 健 ��� 检查：
    - Nginx 服务每 30 秒进行一次配置测试
    - 应用服务每 30 秒检查一次健康状态
 
@@ -344,3 +344,153 @@ sudo netstat -tulpn | grep <port>   `
 - 确保 Dockerfile 中安装了 curl 工具
 - 健康检查失败可能导致容器重启
 - 查看健康状态：`docker ps` 或 `docker inspect`
+
+# AI 服务调用最佳实践
+
+## API 端点
+
+基础 URL: `/api/v1/ai/analyze`
+
+### 请求示例
+
+1. 基础调用示例：
+
+```bash
+curl -X POST http://localhost:8080/api/v1/ai/analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "需要分析的文本内容"
+  }'
+```
+
+2. 带完整选项的调用示例：
+
+```bash
+curl -X POST http://localhost:8080/api/v1/ai/analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "需要分析的文本内容",
+    "options": {
+      "language": "zh",
+      "maxTokens": 100,
+      "temperature": 0.7
+    }
+  }' | json_pp
+```
+
+### 请求参数说明
+
+| 参数                | 类型   | 必填 | 说明               |
+| ------------------- | ------ | ---- | ------------------ |
+| text                | String | 是   | 需要分析的文本内容 |
+| options             | Object | 否   | 分析选项           |
+| options.language    | String | 否   | 语言代码，如 "zh"  |
+| options.maxTokens   | Int    | 否   | 最大标记数         |
+| options.temperature | Double | 否   | 采样温度，范围 0-1 |
+
+### 响应格式
+
+```json
+{
+  "analysis": "分析结果文本",
+  "keywords": ["关键词1", "关键词2"],
+  "sentiment": "情感分析结果",
+  "timestamp": "2024-03-20T10:00:00Z"
+}
+```
+
+## 环境配置
+
+1. 必要的环境变量：
+
+```bash
+export LLM_API_KEY="your-api-key"
+export LLM_API_ENDPOINT="https://api.llm-service.com/v1/analyze"
+```
+
+2. Docker 环境变量配置：
+
+```yaml
+environment:
+  - LLM_API_KEY=${LLM_API_KEY}
+  - LLM_API_ENDPOINT=${LLM_API_ENDPOINT}
+```
+
+## 日志追踪
+
+1. 查看请求日志：
+
+```bash
+docker compose logs app | grep "AI analysis"
+```
+
+2. 关键日志节点：
+
+- 请求开始：`AI analysis request started`
+- 参数解析：`Decoding request parameters`
+- 服务调用：`Calling LLM service`
+- 调用完成：`LLM service call completed`
+
+## 性能监控
+
+1. 关键指标：
+
+- 请求响应时间
+- LLM 服务调用时间
+- 错误率
+- 请求成功率
+
+2. 监控命令：
+
+```bash
+# 查看平均响应时间
+docker compose logs app | grep "Duration" | awk -F"Duration: " '{sum += $2; count++} END {print sum/count}'
+
+# 查看错误率
+docker compose logs app | grep -c "error"
+```
+
+## 错误处理
+
+1. 常见错误码：
+
+- 400: 请求参数错误
+- 401: 未授权（API Key 无效）
+- 429: 请求过于频繁
+- 500: LLM 服务内部错误
+
+2. 错误恢复策略：
+
+- 实现请求重试机制
+- 设置超时限制
+- 实现熔断机制
+- 监控错误模式
+
+## 安全考虑
+
+1. API 密钥保护：
+
+- 使用环境变量管理密钥
+- 定期轮换密钥
+- 避免在日志中打印密钥
+
+2. 请求限制：
+
+- 实施速率限制
+- 设置最大文本长度
+- 验证请求来源
+
+## 最佳实践
+
+1. 调用建议：
+
+- 合理设置 maxTokens 避免过度消耗
+- 根据场景调整 temperature 参数
+- 实现请求缓存减少重复调用
+
+2. 性能优化：
+
+- 使用异步处理长文本
+- 实现结果缓存
+- 批量处理请求
+- 监控资源使用
