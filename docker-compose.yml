@@ -52,12 +52,12 @@ services:
       ]
     networks:
       - app-network # 连接到应用网络
-    # healthcheck: # 为 app 服务添加健康检查
-    #   test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-    #   interval: 30s
-    #   timeout: 10s
-    #   retries: 3
-    #   start_period: 30s
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   # Nginx反向代理服务
   nginx:
@@ -72,16 +72,16 @@ services:
       - ./Public:/var/www/tiwenlab.com/public:ro
     depends_on:
       app:
-        condition: service_healthy # 添加健康检��依赖
+        condition: service_healthy # 添加健康检查依赖
     networks:
       - app-network
     restart: unless-stopped # 添加重启策略
-    # healthcheck: # 添加健康检查
-    #   test: ["CMD", "nginx", "-t"]
-    #   interval: 30s
-    #   timeout: 10s
-    #   retries: 3
-    #   start_period: 30s
+    healthcheck: # 添加健康检查
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   # 数据库迁移服务
   migrate:

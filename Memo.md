@@ -108,7 +108,7 @@
 ## 过滤器语法
 
 1. 使用标准三参数语法: .filter(\.$field, .operator, value)
-2. 使用比较运算符直接比较
+2. �� 用比较运算符直接比较
 3. 使用类型安全的字段路径
 4. 正确处理可选值
 
@@ -327,3 +327,20 @@ sudo netstat -tulpn | grep <port>   `
    - 检查服务状态：`sudo systemctl status postgresql`
    - 停止服务：`sudo systemctl stop postgresql`
    - 禁用自启动：`sudo systemctl disable postgresql`
+
+# 健康检查配置
+
+## Docker 容器健康检查
+
+- app 服务配置了基于 HTTP 的健康检查
+- 健康检查端点：`/health`
+- 检查间隔：30 秒
+- 超时时间：10 秒
+- 重试次数：3 次
+- 启动宽限期：30 秒
+
+## 注意事项
+
+- 确保 Dockerfile 中安装了 curl 工具
+- 健康检查失败可能导致容器重启
+- 查看健康状态：`docker ps` 或 `docker inspect`
