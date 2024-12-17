@@ -33,13 +33,13 @@ x-shared_environment: &shared_environment
 services:
   # Vapor应用服务
   app:
-    image: quest:latest # 容器镜像名称
+    image: quest:latest
     build:
-      context: . # 使用当前目录作为构建上下文
+      context: .
     environment:
-      <<: *shared_environment # 引用共享环境变量
+      <<: *shared_environment
     depends_on:
-      - db # 确保数据库服务先启动
+      - db
     command:
       [
         "serve",
@@ -51,13 +51,7 @@ services:
         "8080",
       ]
     networks:
-      - app-network # 连接到应用网络
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+      - app-network
 
   # Nginx反向代理服务
   nginx:
@@ -115,16 +109,16 @@ services:
 
   # PostgreSQL数据库服务
   db:
-    image: postgres:16-alpine # 使用轻量级Alpine版本
+    image: postgres:16-alpine
     volumes:
-      - db_data:/var/lib/postgresql/data/pgdata # 数据持久化
+      - db_data:/var/lib/postgresql/data/pgdata
     environment:
-      PGDATA: /var/lib/postgresql/data/pgdata # 数据目录
+      PGDATA: /var/lib/postgresql/data/pgdata
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "5432:5432" # 数据库端口映射，仅用于开发环境
+      - "5432:5432"
     networks:
       - app-network
 

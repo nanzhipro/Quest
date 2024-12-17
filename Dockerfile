@@ -86,6 +86,6 @@ EXPOSE 8080
 # Start the Vapor service when the image is run, default to listening on 8080 in production environment
 ENTRYPOINT ["./App"]
 CMD ["serve", "--env", "production", "--hostname", "0.0.0.0", "--port", "8080"]
-
 # 在 Dockerfile 中添加 curl 安装
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
