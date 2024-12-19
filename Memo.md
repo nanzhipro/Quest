@@ -108,7 +108,7 @@
 ## 过滤器语法
 
 1. 使用标准三参数语法: .filter(\.$field, .operator, value)
-2. 使用比较运算符直接比较
+2. �� 用比较运算符直接比较
 3. 使用类型安全的字段路径
 4. 正确处理可选值
 
@@ -243,7 +243,7 @@
 
 ## 依赖管理
 
-1. 确保添加正确的 JWT 依赖
+1. 确 ��� 添加正确的 JWT 依赖
 2. 使用兼容的版本号
 3. 在目标中包含 JWT 产品
 4. 检查依赖冲突
@@ -301,11 +301,11 @@ docker compose build    # 构建镜像
 docker compose up -d    # 启动所有服务   `
 
 3. 故障排查命令： `bash
-docker compose ps       # 查看服务状态
+docker compose ps       # 查看服��状态
 docker compose logs nginx  # 查看 nginx 日志
 docker compose logs app    # 查看应用日志   `
 
-4. 健 ��� 检查：
+4. 健康检查：
    - Nginx 服务每 30 秒进行一次配置测试
    - 应用服务每 30 秒检查一次健康状态
 
@@ -359,7 +359,7 @@ sudo netstat -tulpn | grep <port>   `
 curl -X POST http://localhost:8080/api/v1/ai/analyze \
   -H "Content-Type: application/json" \
   -d '{
-    "text": "需要分析的文本内容"
+    "text": "需要分析的文本内���"
   }'
 ```
 
@@ -494,3 +494,159 @@ docker compose logs app | grep -c "error"
 - 实现结果缓存
 - 批量处理请求
 - 监控资源使用
+
+# 腾讯混元大模型集成指南
+
+## 环境配置
+
+1. 必要的环境变量：
+
+```bash
+# 腾讯云密钥配置
+export TENCENT_SECRET_ID="your-secret-id"
+export TENCENT_SECRET_KEY="your-secret-key"
+```
+
+2. Docker 环境变量配置：
+
+```yaml
+environment:
+  - TENCENT_SECRET_ID=${TENCENT_SECRET_ID}
+  - TENCENT_SECRET_KEY=${TENCENT_SECRET_KEY}
+```
+
+## API 端点
+
+### 1. 聊天补全接口
+
+**请求地址**：`POST /api/v1/llm/chat`
+
+**请求参数**：
+
+```json
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "你好"
+    }
+  ],
+  "model": "hunyuan-lite",
+  "temperature": 0.7,
+  "stream": false
+}
+```
+
+**响应格式**：
+
+```json
+{
+  "content": "你好！很高兴见到你。",
+  "usage": {
+    "promptTokens": 3,
+    "completionTokens": 34,
+    "totalTokens": 37
+  },
+  "requestId": "80b9eed0-e14d-4d6a-ab6b-e0901addbb12"
+}
+```
+
+### 2. 流式聊天补全接口
+
+**请求地址**：`POST /api/v1/llm/chat/stream`
+
+**请求参数**：与普通聊天接口相同
+
+**响应格式**：Server-Sent Events (SSE)
+
+```
+data: {"content": "你好"}
+
+data: {"content": "！"}
+
+data: {"content": "很高兴"}
+
+data: {"content": "见到你。"}
+
+data: [DONE]
+```
+
+## 错误处理
+
+1. 常见错误码：
+
+   - 400: 请求参数错误
+   - 401: 未授权（API Key 无效）
+   - 429: 请求过于频繁
+   - 500: 服务内部错误
+
+2. 错误响应格式：
+
+```json
+{
+  "error": {
+    "code": "error_code",
+    "message": "错误描述"
+  }
+}
+```
+
+## 最佳实践
+
+1. 请求建议：
+
+   - 合理设置 temperature 参数（0.7 为推荐值）
+   - 控制单次请求的 token 数量
+   - 使用流式接口获得更好的交互体验
+
+2. 安全建议：
+
+   - 使用环境变量管理密钥
+   - 定期轮换密钥
+   - 实施请求速率限制
+
+3. 性能优化：
+
+   - 使用流式接口处理长文本生成
+   - 实现响应缓存
+   - 合理设置超时时间
+
+4. 监控建议：
+   - 记录 API 调用日志
+   - 监控响应时间
+   - 跟踪 token 使用量
+   - 设置错误告警
+
+## 开发调试
+
+1. 使用 curl 测试接口：
+
+```bash
+# 普通聊天接口
+curl -X POST http://localhost:8080/api/v1/llm/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "messages": [{"role": "user", "content": "你好"}],
+    "model": "hunyuan-lite",
+    "temperature": 0.7
+  }'
+
+# 流式聊天接口
+curl -X POST http://localhost:8080/api/v1/llm/chat/stream \
+  -H "Content-Type: application/json" \
+  -d '{
+    "messages": [{"role": "user", "content": "你好"}],
+    "model": "hunyuan-lite",
+    "temperature": 0.7
+  }'
+```
+
+2. 查看日志：
+
+```bash
+# 查看应用日志
+docker compose logs app | grep "LLM"
+
+# 查看错误日志
+docker compose logs app | grep "error"
+```

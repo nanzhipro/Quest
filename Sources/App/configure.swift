@@ -45,6 +45,12 @@ public func configure(_ app: Application) async throws {
     
     app.logger.info("LLM configuration: endpoint=\(llmApiEndpoint)")
 
+    // 配置腾讯混元大模型
+    try await LLMConfiguration.shared.configureTencentHunyuan(app: app)
+    
+    // 注册 LLM 路由
+    try LLMController().routes(app)
+    
     // register routes
     try routes(app)
 }
