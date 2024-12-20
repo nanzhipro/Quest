@@ -21,7 +21,7 @@ let package = Package(
         .package(url: "https://github.com/vapor/jwt.git", from: "4.0.0"),
     ],
     targets: [
-        .target(
+        .executableTarget(
             name: "App",
             dependencies: [
                 .product(name: "Vapor", package: "vapor"),
