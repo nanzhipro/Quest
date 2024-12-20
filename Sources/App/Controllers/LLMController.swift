@@ -100,11 +100,14 @@ struct LLMController {
                 Task {
                     do {
                         for try await chunk in stream {
-                            try await writer.write(.buffer(ByteBuffer(string: "data: \(chunk)\n\n")))
+                            let buffer = ByteBuffer(string: "data: \(chunk)\n\n")
+                            _ = writer.write(.buffer(buffer))
                         }
-                        try await writer.write(.buffer(ByteBuffer(string: "data: [DONE]\n\n")))
+                        
+                        let doneBuffer = ByteBuffer(string: "data: [DONE]\n\n")
+                        _ = writer.write(.buffer(doneBuffer))
                     } catch {
-                        try await writer.write(.error(error))
+                        _ = writer.write(.error(error))
                     }
                 }
             })
