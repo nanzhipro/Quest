@@ -24,11 +24,7 @@ public func configure(_ app: Application) async throws {
     app.views.use(.leaf)
 
     // 配置 JWT
-    let jwksString = Environment.get("JWT_SECRET") ?? "your-default-secret-key"
-    if Environment.get("JWT_SECRET") == nil {
-        app.logger.warning("JWT_SECRET not found in environment, using default key")
-    }
-    app.jwt.signers.use(.hs256(key: jwksString))
+    app.jwt.signers.use(.hs256(key: AppEnvironment.jwtSecret))
 
     // 配置环境变量
     let llmApiKey = Environment.get("LLM_API_KEY") ?? "your-api-key"
@@ -46,7 +42,11 @@ public func configure(_ app: Application) async throws {
     app.logger.info("LLM configuration: endpoint=\(llmApiEndpoint)")
 
     // 配置腾讯混元大模型
-    try await LLMConfiguration.shared.configureTencentHunyuan(app: app)
+    do {
+        try LLMConfiguration.shared.configureTencentHunyuan(app: app)
+    } catch {
+        app.logger.error("Failed to configure LLM: \(error)")
+    }
     
     // 注册 LLM 路由
     try LLMController().routes(app)

@@ -82,12 +82,15 @@ public struct LLMUsage: Codable {
 
 /// LLM 错误类型
 public enum LLMError: Error {
+    /// 配置无效
     case invalidConfiguration
+    /// 提供者未配置
+    case providerNotConfigured
+    /// 请求失败
     case requestFailed(String)
+    /// 响应解析失败
     case responseParsing(String)
-    case authentication(String)
-    case rateLimited(String)
-    case serverError(String)
+    /// 未知错误
     case unknown(String)
 }
 

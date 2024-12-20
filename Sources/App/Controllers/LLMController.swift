@@ -41,7 +41,7 @@ struct LLMController {
             let requestDTO = try req.content.decode(LLMRequestDTO.self)
             
             // 获取 LLM 提供者
-            let provider = try await LLMConfiguration.shared.getProvider()
+            let provider = try LLMConfiguration.shared.getProvider()
             
             // 构建请求配置
             let config = LLMConfig(
@@ -71,7 +71,7 @@ struct LLMController {
             let requestDTO = try req.content.decode(LLMRequestDTO.self)
             
             // 获取 LLM 提供者
-            let provider = try await LLMConfiguration.shared.getProvider()
+            let provider = try LLMConfiguration.shared.getProvider()
             
             // 构建请求配置
             let config = LLMConfig(
