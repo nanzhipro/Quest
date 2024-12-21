@@ -65,7 +65,7 @@
   //  Created by CursorAI on {Date}.
   //
   ```
-- 把涉及到客户端调用（Client.md），安全（Security.md），运维（DevOps.md）忘录，使用 Markdown 的格式，汇总更新到各自的文件中。
+- 把涉及到客户端调用（Client.md），安全（Security.md），运维（DevOps.md）忘录，其他重要备忘，记录在 Other.md 中。使用 Markdown 的格式，汇总后，请按照主题相关性，追加到各自的备忘文件中。
 
 ---
 

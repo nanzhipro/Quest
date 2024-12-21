@@ -7,6 +7,15 @@ import JWT
 
 // configures your application
 public func configure(_ app: Application) async throws {
+    // 加载 .env 文件
+    _ = try Environment.detect()
+    app.logger.info("Environment variables loaded")
+    
+    // 验证关键环境变量
+    if Environment.get("TENCENT_SECRET_ID") == nil {
+        app.logger.warning("TENCENT_SECRET_ID not found in environment")
+    }
+    
     // uncomment to serve files from /Public folder
     // app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
 
@@ -31,7 +40,7 @@ public func configure(_ app: Application) async throws {
         // 从环境变量或配置中获取要使用的 LLM 提供者
         let provider: LLMProviderType = Environment.get("LLM_PROVIDER") == "doubao" ? .doubao : .tencentHunyuan
         
-        // 创建并执行初始化
+        // 建并执行初始化
         let initializer = LLMInitializerFactory.createInitializer(for: provider)
         try initializer.initialize(app: app)
     } catch {
