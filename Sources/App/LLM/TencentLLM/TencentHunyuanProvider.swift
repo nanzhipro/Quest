@@ -77,6 +77,8 @@ public final class TencentHunyuanProvider: LLMProvider {
                 timestamp: timestamp,
                 action: "ChatCompletions"
             )
+
+
             
             logger.info("Generated signature headers", metadata: [
                 "timestamp": .string("\(timestamp)"),
@@ -101,6 +103,14 @@ public final class TencentHunyuanProvider: LLMProvider {
                 headers: headers,
                 body: endpoint.body
             )
+            
+            // 记录原始响应
+            if let responseData = try? JSONEncoder().encode(response),
+               let responseString = String(data: responseData, encoding: .utf8) {
+                logger.debug("Raw API response", metadata: [
+                    "response": .string(responseString)
+                ], source: source)
+            }
             
             logger.info("Received response", metadata: [
                 "requestId": .string(response.response.requestId),
@@ -155,7 +165,7 @@ public final class TencentHunyuanProvider: LLMProvider {
                     
                     let response = try await execute(streamRequest)
                     
-                    // 解析 SSE 格式���响应
+                    // 解析 SSE 格式响应
                     let chunks = response.content.components(separatedBy: "\n\n")
                     for chunk in chunks where !chunk.isEmpty {
                         if chunk.hasPrefix("data: ") {

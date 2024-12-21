@@ -40,11 +40,17 @@ struct TencentHunyuanRequest: Encodable {
     }
 }
 
-struct TencentHunyuanResponse: Decodable {
-    struct Response: Decodable {
-        struct Choice: Decodable {
-            struct Message: Decodable {
+/// 腾讯混元大模型响应
+struct TencentHunyuanResponse: Codable {
+    /// 响应内容
+    struct Response: Codable {
+        /// 选项内容
+        struct Choice: Codable {
+            /// 消息内容
+            struct Message: Codable {
+                /// 角色（assistant、user、system）
                 let role: String
+                /// 消息内容
                 let content: String
                 
                 enum CodingKeys: String, CodingKey {
@@ -52,8 +58,12 @@ struct TencentHunyuanResponse: Decodable {
                     case content = "Content"
                 }
             }
+            
+            /// 选项索引
             let index: Int
+            /// 消息内容
             let message: Message
+            /// 结束原因
             let finishReason: String?
             
             enum CodingKeys: String, CodingKey {
@@ -63,9 +73,13 @@ struct TencentHunyuanResponse: Decodable {
             }
         }
         
-        struct Usage: Decodable {
+        /// Token 使用统计
+        struct Usage: Codable {
+            /// 提示 Token 数量
             let promptTokens: Int
+            /// 补全 Token 数量
             let completionTokens: Int
+            /// 总 Token 数量
             let totalTokens: Int
             
             enum CodingKeys: String, CodingKey {
@@ -75,11 +89,17 @@ struct TencentHunyuanResponse: Decodable {
             }
         }
         
+        /// 请求 ID
         let requestId: String
+        /// 响应注释
         let note: String?
+        /// 选项列表
         let choices: [Choice]
-        let created: Int?
-        let id: String?
+        /// 创建时间戳
+        let created: Int
+        /// 会话 ID
+        let id: String
+        /// Token 使用统计
         let usage: Usage
         
         enum CodingKeys: String, CodingKey {
@@ -92,6 +112,7 @@ struct TencentHunyuanResponse: Decodable {
         }
     }
     
+    /// 响应内容
     let response: Response
     
     enum CodingKeys: String, CodingKey {

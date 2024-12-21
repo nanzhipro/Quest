@@ -99,6 +99,15 @@ final class NetworkService: NetworkServiceProtocol {
         ], source: source)
         
         do {
+            if let jsonObject = try? JSONSerialization.jsonObject(with: Data(buffer: responseData)),
+               let prettyData = try? JSONSerialization.data(withJSONObject: jsonObject, options: .prettyPrinted),
+               let prettyJSON = String(data: prettyData, encoding: .utf8) {
+                logger.debug("Response JSON", metadata: [
+                    "url": .string(url.absoluteString),
+                    "json": .string(prettyJSON)
+                ], source: source)
+            }
+            
             let decoded = try decoder.decode(T.self, from: Data(buffer: responseData))
             logger.info("Request completed successfully", metadata: [
                 "url": .string(url.absoluteString),
@@ -108,7 +117,8 @@ final class NetworkService: NetworkServiceProtocol {
         } catch {
             logger.error("Response parsing failed", metadata: [
                 "error": .string("\(error)"),
-                "type": .string("\(T.self)")
+                "type": .string("\(T.self)"),
+                "rawResponse": .string(String(buffer: responseData))
             ], source: source)
             throw error
         }

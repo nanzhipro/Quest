@@ -34,63 +34,53 @@ final class TencentHunyuanSigner: @unchecked Sendable {
         
         let date = formatDate(timestamp)
         let credentialScope = "\(date)/\(service)/tc3_request"
+        let algorithm = "TC3-HMAC-SHA256"
         
         logger.debug("Building canonical request", metadata: [
             "date": .string(date),
             "credentialScope": .string(credentialScope)
         ], source: source)
         
-        // 1. 规范请求串
-        let canonicalRequest = try buildCanonicalRequest(
-            params: params,
-            action: action
-        )
+        // 1. 构建规范请求串
+        let canonicalRequest = try buildCanonicalRequest(params: params, action: action)
+        let hashedCanonicalRequest = sha256(canonicalRequest)
         
         logger.debug("Canonical request built", metadata: [
-            "requestHash": .string(sha256(canonicalRequest))
+            "requestHash": .string(hashedCanonicalRequest)
         ], source: source)
         
-        // 2. 待签名字符串
-        let stringToSign = buildStringToSign(
-            timestamp: timestamp,
-            credentialScope: credentialScope,
-            canonicalRequest: canonicalRequest
-        )
+        // 2. 构建待签名字符串
+        let stringToSign = """
+        \(algorithm)
+        \(timestamp)
+        \(credentialScope)
+        \(hashedCanonicalRequest)
+        """
         
         logger.debug("String to sign prepared", metadata: [
             "stringHash": .string(sha256(stringToSign))
         ], source: source)
         
         // 3. 计算签名
-        let signature = try calculateSignature(
-            date: date,
-            stringToSign: stringToSign
-        )
+        let signature = try calculateSignature(date: date, stringToSign: stringToSign)
         
         logger.debug("Signature calculated", metadata: [
-            "signatureLength": .string("\(signature)")
+            "signatureLength": .string("\(signature.count)")
         ], source: source)
-
         
-        // 4. 返回所有需要的头部
-        let headers = [
-            "Authorization": """
-            TC3-HMAC-SHA256 \
-            Credential=\(secretId)/\(credentialScope), \
-            SignedHeaders=content-type;host;x-tc-action, \
-            Signature=\(signature)
-            """,
-            "Host": endpoint,
-            "X-TC-Timestamp": String(timestamp),
-            "X-TC-Action": action
-        ]
+        // 4. 构建授权信息
+        let authorization = """
+        \(algorithm) \
+        Credential=\(secretId)/\(credentialScope), \
+        SignedHeaders=content-type;host;x-tc-action, \
+        Signature=\(signature)
+        """
         
-        logger.info("Signature headers generated", metadata: [
-            "headerCount": .string("\(headers.count)"),
+        logger.info("Authorization header generated", metadata: [
             "timestamp": .string("\(timestamp)")
         ], source: source)
         
-        return headers
+        return ["Authorization": authorization]
     }
     
     private func formatDate(_ timestamp: Int) -> String {
@@ -101,17 +91,15 @@ final class TencentHunyuanSigner: @unchecked Sendable {
         return formatter.string(from: date)
     }
     
-    private func buildCanonicalRequest(
-        params: [String: Any],
-        action: String
-    ) throws -> String {
+    private func buildCanonicalRequest(params: [String: Any], action: String) throws -> String {
         let source = "TencentHunyuanSigner.buildCanonicalRequest"
         
         logger.debug("Building canonical request components", metadata: [
             "action": .string(action)
         ], source: source)
         
-        let method = "POST"
+        // 按照文档要求构建规范请求串
+        let httpRequestMethod = "POST"
         let canonicalUri = "/"
         let canonicalQueryString = ""
         let canonicalHeaders = """
@@ -124,7 +112,7 @@ final class TencentHunyuanSigner: @unchecked Sendable {
         let hashedRequestPayload = try hashPayload(params)
         
         let request = """
-        \(method)
+        \(httpRequestMethod)
         \(canonicalUri)
         \(canonicalQueryString)
         \(canonicalHeaders)
@@ -139,33 +127,17 @@ final class TencentHunyuanSigner: @unchecked Sendable {
         return request
     }
     
-    private func buildStringToSign(
-        timestamp: Int,
-        credentialScope: String,
-        canonicalRequest: String
-    ) -> String {
-        let algorithm = "TC3-HMAC-SHA256"
-        let requestHash = sha256(canonicalRequest)
-        
-        return """
-        \(algorithm)
-        \(timestamp)
-        \(credentialScope)
-        \(requestHash)
-        """
-    }
-    
-    private func calculateSignature(
-        date: String,
-        stringToSign: String
-    ) throws -> String {
+    private func calculateSignature(date: String, stringToSign: String) throws -> String {
         let source = "TencentHunyuanSigner.calculateSignature"
         
         logger.debug("Calculating signature steps", metadata: nil, source: source)
         
+        // 1. 派生签名密钥
         let secretDate = hmac(key: "TC3\(secretKey)".data(using: .utf8)!, data: date.data(using: .utf8)!)
         let secretService = hmac(key: secretDate, data: service.data(using: .utf8)!)
         let secretSigning = hmac(key: secretService, data: "tc3_request".data(using: .utf8)!)
+        
+        // 2. 计算签名
         let signature = hmac(key: secretSigning, data: stringToSign.data(using: .utf8)!)
         
         logger.debug("Signature calculation completed", metadata: [

@@ -13,10 +13,12 @@ import Logging
 struct TencentHunyuanEndpoint: APIEndpoint {
     private let request: LLMRequest
     private let logger: Logger
+    private let timestamp: Int
     
     init(request: LLMRequest, logger: Logger) {
         self.request = request
         self.logger = logger
+        self.timestamp = Int(Date().timeIntervalSince1970)
     }
     
     var path: String {
@@ -29,17 +31,21 @@ struct TencentHunyuanEndpoint: APIEndpoint {
     
     var headers: [String: String]? {
         let source = "TencentHunyuanEndpoint.headers"
+        // 按照文档要求的顺序设置 headers
         let headers = [
-            "Content-Type": "application/json",
-            "X-TC-Version": "2023-09-01",
+            "Host": "hunyuan.tencentcloudapi.com",
             "X-TC-Action": "ChatCompletions",
+            "X-TC-Timestamp": String(timestamp),
             "X-TC-Language": "zh-CN",
-            "X-TC-Region": "ap-beijing"
+            "X-TC-Version": "2023-09-01",
+            "X-TC-Region": "ap-beijing",
+            "Content-Type": "application/json"
         ]
         
         logger.debug("Generated API headers", metadata: [
             "headerCount": .string("\(headers.count)"),
-            "action": .string("ChatCompletions")
+            "action": .string("ChatCompletions"),
+            "timestamp": .string("\(timestamp)")
         ], source: source)
         
         return headers
@@ -65,5 +71,9 @@ struct TencentHunyuanEndpoint: APIEndpoint {
         ], source: source)
         
         return params
+    }
+    
+    var currentTimestamp: Int {
+        timestamp
     }
 } 
