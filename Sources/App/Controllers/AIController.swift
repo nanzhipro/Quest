@@ -17,34 +17,55 @@ struct AIController: RouteCollection, Sendable {
     func boot(routes: RoutesBuilder) throws {
         let ai = routes.grouped("ai")
         ai.post("analyze") { req async throws -> AIAnalysisResponse in
-            // 生成请求 ID
             let requestId = UUID().uuidString
+            let source = "AIController.analyze"
             
             // 记录请求开始
-            req.logger.info("[\(requestId)] AI analysis request started")
+            req.log.info(
+                "AI analysis request started",
+                metadata: ["requestId": .string(requestId)],
+                source: source
+            )
             
             do {
                 // 记录请求参数解析
-                req.logger.info("[\(requestId)] Decoding request parameters")
+                req.log.debug(
+                    "Decoding request parameters",
+                    metadata: ["requestId": .string(requestId)],
+                    source: source
+                )
+                
                 let analysisRequest = try req.content.decode(AIAnalysisRequest.self)
                 
                 // 记录参数验证
-                req.logger.info("""
-                    [\(requestId)] Request parameters:
-                    - Text length: \(analysisRequest.text.count)
-                    - Language: \(analysisRequest.options?.language ?? "default")
-                    - MaxTokens: \(analysisRequest.options?.maxTokens ?? 0)
-                    - Temperature: \(analysisRequest.options?.temperature ?? 0.0)
-                    """)
+                req.log.info(
+                    "Request parameters validated",
+                    metadata: [
+                        "requestId": .string(requestId),
+                        "textLength": .string("\(analysisRequest.text.count)"),
+                        "language": .string(analysisRequest.options?.language ?? "default"),
+                        "maxTokens": .string("\(analysisRequest.options?.maxTokens ?? 0)"),
+                        "temperature": .string("\(analysisRequest.options?.temperature ?? 0.0)")
+                    ],
+                    source: source
+                )
                 
                 guard !analysisRequest.text.isEmpty else {
-                    req.logger.error("[\(requestId)] Error: Empty text content")
+                    req.log.error(
+                        "Empty text content",
+                        metadata: ["requestId": .string(requestId)],
+                        source: source
+                    )
                     throw Abort(.badRequest, reason: "Text content cannot be empty")
                 }
                 
                 // 记录 LLM 服务调用开始
-                req.logger.info("[\(requestId)] Calling LLM service")
                 let startTime = Date()
+                req.log.info(
+                    "Starting LLM service call",
+                    metadata: ["requestId": .string(requestId)],
+                    source: source
+                )
                 
                 let response = try await llmService.analyzeText(
                     analysisRequest.text,
@@ -53,22 +74,36 @@ struct AIController: RouteCollection, Sendable {
                 
                 // 记录 LLM 服务调用完成
                 let duration = Date().timeIntervalSince(startTime)
-                req.logger.info("""
-                    [\(requestId)] LLM service call completed:
-                    - Duration: \(String(format: "%.3f", duration))s
-                    - Keywords count: \(response.keywords.count)
-                    - Analysis length: \(response.analysis.count)
-                    """)
+                req.log.info(
+                    "LLM service call completed",
+                    metadata: [
+                        "requestId": .string(requestId),
+                        "duration": .string(String(format: "%.3f", duration)),
+                        "keywordsCount": .string("\(response.keywords.count)"),
+                        "analysisLength": .string("\(response.analysis.count)")
+                    ],
+                    source: source
+                )
                 
                 return response
                 
             } catch let error as AbortError {
                 // 记录业务逻辑错误
-                req.logger.error("[\(requestId)] Business error: \(error.reason)")
+                req.log.error(
+                    error,
+                    message: "Business error occurred",
+                    metadata: ["requestId": .string(requestId)],
+                    source: source
+                )
                 throw error
             } catch {
                 // 记录意外错误
-                req.logger.error("[\(requestId)] Unexpected error: \(error.localizedDescription)")
+                req.log.error(
+                    error,
+                    message: "Unexpected error occurred",
+                    metadata: ["requestId": .string(requestId)],
+                    source: source
+                )
                 throw error
             }
         }

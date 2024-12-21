@@ -53,4 +53,14 @@ public func configure(_ app: Application) async throws {
     
     // register routes
     try routes(app)
+
+    // 配置日志服务
+    let loggingConfiguration = LoggingConfiguration(
+        label: "app.vapor",
+        metadata: [
+            "app": .string("VaporApp"),
+            "environment": .string(app.environment.name)
+        ]
+    )
+    app.log = LoggingService(configuration: loggingConfiguration)
 }
