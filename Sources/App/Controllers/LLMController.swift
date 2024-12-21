@@ -38,81 +38,106 @@ struct LLMController {
         
         // 聊天补全接口
         llm.post("chat") { req -> LLMResponseDTO in
-            let requestDTO = try req.content.decode(LLMRequestDTO.self)
+            req.logger.info("Received chat request")
             
-            // 获取 LLM 提供者
-            let provider = try LLMConfiguration.shared.getProvider()
+            let requestDTO = try req.validate(content: LLMRequestDTO.self)
             
-            // 构建请求配置
-            let config = LLMConfig(
-                model: requestDTO.model,
-                temperature: requestDTO.temperature ?? 0.7,
-                stream: requestDTO.stream ?? false
-            )
+            guard !requestDTO.messages.isEmpty else {
+                req.logger.warning("Empty messages received")
+                throw LLMError.invalidRequest
+            }
             
-            // 执行请求
-            let request = LLMRequest(
-                messages: requestDTO.messages,
-                config: config
-            )
-            
-            let response = try await provider.execute(request)
-            
-            // 转换为 DTO
-            return LLMResponseDTO(
-                content: response.content,
-                usage: response.usage,
-                requestId: response.requestId
-            )
+            do {
+                let provider = try LLMConfiguration.shared.getProvider()
+                
+                let config = LLMConfig(
+                    model: requestDTO.model,
+                    temperature: requestDTO.temperature ?? 0.7,
+                    stream: requestDTO.stream ?? false
+                )
+                
+                let request = LLMRequest(
+                    messages: requestDTO.messages,
+                    config: config
+                )
+                
+                let response = try await provider.execute(request)
+                req.logger.info("Chat request completed successfully")
+                
+                return LLMResponseDTO(
+                    content: response.content,
+                    usage: response.usage,
+                    requestId: response.requestId
+                )
+            } catch {
+                req.logger.error("Chat request failed: \(error)")
+                throw error
+            }
         }
         
         // 流式聊天补全接口
         llm.post("chat", "stream") { req async throws -> Response in
-            let requestDTO = try req.content.decode(LLMRequestDTO.self)
+            req.logger.info("Received stream chat request")
             
-            // 获取 LLM 提供者
-            let provider = try LLMConfiguration.shared.getProvider()
+            let requestDTO = try req.validate(content: LLMRequestDTO.self)
             
-            // 构建请求配置
-            let config = LLMConfig(
-                model: requestDTO.model,
-                temperature: requestDTO.temperature ?? 0.7,
-                stream: true
-            )
+            guard !requestDTO.messages.isEmpty else {
+                req.logger.warning("Empty messages received")
+                throw LLMError.invalidRequest
+            }
             
-            // 执行请求
-            let request = LLMRequest(
-                messages: requestDTO.messages,
-                config: config
-            )
-            
-            // 创建流式响应
             let response = Response(body: .init())
             response.headers.replaceOrAdd(
                 name: .contentType,
                 value: "text/event-stream; charset=utf-8"
             )
             
-            let stream = try await provider.executeStream(request)
-            
-            // 写入响应流
-            response.body = .init(stream: { writer in
-                Task {
-                    do {
-                        for try await chunk in stream {
-                            let buffer = ByteBuffer(string: "data: \(chunk)\n\n")
-                            _ = writer.write(.buffer(buffer))
+            do {
+                let provider = try LLMConfiguration.shared.getProvider()
+                
+                let config = LLMConfig(
+                    model: requestDTO.model,
+                    temperature: requestDTO.temperature ?? 0.7,
+                    stream: true
+                )
+                
+                let request = LLMRequest(
+                    messages: requestDTO.messages,
+                    config: config
+                )
+                
+                let stream = try await provider.executeStream(request)
+                
+                response.body = .init(stream: { writer in
+                    Task {
+                        do {
+                            for try await chunk in stream {
+                                let buffer = ByteBuffer(string: "data: \(chunk)\n\n")
+                                _ = writer.write(.buffer(buffer))
+                            }
+                            
+                            let doneBuffer = ByteBuffer(string: "data: [DONE]\n\n")
+                            _ = writer.write(.buffer(doneBuffer))
+                            req.logger.info("Stream chat request completed successfully")
+                        } catch {
+                            req.logger.error("Stream chat request failed: \(error)")
+                            _ = writer.write(.error(error))
                         }
-                        
-                        let doneBuffer = ByteBuffer(string: "data: [DONE]\n\n")
-                        _ = writer.write(.buffer(doneBuffer))
-                    } catch {
-                        _ = writer.write(.error(error))
                     }
-                }
-            })
-            
-            return response
+                })
+                
+                return response
+            } catch {
+                req.logger.error("Failed to initialize stream chat: \(error)")
+                throw error
+            }
         }
+    }
+}
+
+// MARK: - Request Validation
+extension Request {
+    func validate<T: Content>(content type: T.Type) throws -> T {
+        try self.content.decode(type)
     }
 } 

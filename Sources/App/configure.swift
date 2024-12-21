@@ -25,25 +25,15 @@ public func configure(_ app: Application) async throws {
 
     // 配置 JWT
     app.jwt.signers.use(.hs256(key: AppEnvironment.jwtSecret))
-
-    // 配置环境变量
-    let llmApiKey = Environment.get("LLM_API_KEY") ?? "your-api-key"
-    if Environment.get("LLM_API_KEY") == nil {
-        app.logger.warning("LLM_API_KEY not found in environment, using default key")
-        Environment.process.LLM_API_KEY = llmApiKey
-    }
     
-    let llmApiEndpoint = Environment.get("LLM_API_ENDPOINT") ?? "https://api.llm-service.com/v1/analyze"
-    if Environment.get("LLM_API_ENDPOINT") == nil {
-        app.logger.warning("LLM_API_ENDPOINT not found in environment, using default endpoint")
-        Environment.process.LLM_API_ENDPOINT = llmApiEndpoint
-    }
-    
-    app.logger.info("LLM configuration: endpoint=\(llmApiEndpoint)")
-
-    // 配置腾讯混元大模型
+    // 配置 LLM 服务
     do {
-        try LLMConfiguration.shared.configureTencentHunyuan(app: app)
+        // 从环境变量或配置中获取要使用的 LLM 提供者
+        let provider: LLMProviderType = Environment.get("LLM_PROVIDER") == "doubao" ? .doubao : .tencentHunyuan
+        
+        // 创建并执行初始化
+        let initializer = LLMInitializerFactory.createInitializer(for: provider)
+        try initializer.initialize(app: app)
     } catch {
         app.logger.error("Failed to configure LLM: \(error)")
     }

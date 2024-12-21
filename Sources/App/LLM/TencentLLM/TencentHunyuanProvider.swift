@@ -16,13 +16,14 @@ public final class TencentHunyuanProvider: LLMProvider {
     private let apiService: APIServiceProtocol
     private let signer: TencentHunyuanSigner
     private let logger: Logger
-    private let region: String
+    private let config: TencentHunyuanConfig
     private let httpClient: HTTPClient
     
-    public init(app: Application, secretId: String, secretKey: String, region: String = "ap-beijing") {
+    public init(config: TencentHunyuanConfig) {
         let endpoint = "hunyuan.tencentcloudapi.com"
         let service = "hunyuan"
         
+        self.config = config
         self.httpClient = HTTPClient(
             eventLoopGroupProvider: .singleton,
             configuration: .init(timeout: .init(connect: .seconds(30), read: .seconds(30)))
@@ -34,14 +35,13 @@ public final class TencentHunyuanProvider: LLMProvider {
         ))
         
         self.signer = TencentHunyuanSigner(
-            secretId: secretId,
-            secretKey: secretKey,
+            secretId: config.secretId,
+            secretKey: config.secretKey,
             service: service,
             endpoint: endpoint
         )
         
-        self.logger = app.logger
-        self.region = region
+        self.logger = Logger(label: "TencentHunyuanProvider")
     }
     
     deinit {
@@ -50,12 +50,21 @@ public final class TencentHunyuanProvider: LLMProvider {
     
     public func execute(_ request: LLMRequest) async throws -> LLMResponse {
         guard validateConfig(request.config) else {
+            logger.error("Invalid configuration", metadata: [
+                "model": .string(request.config.model),
+                "supportedModels": .string(supportedModels.joined(separator: ", "))
+            ])
             throw LLMError.invalidConfiguration
         }
         
         do {
             let timestamp = Int(floor(Date().timeIntervalSince1970))
             let endpoint = TencentHunyuanEndpoint.chatCompletions(request)
+            
+            logger.debug("Preparing request", metadata: [
+                "action": .string("ChatCompletions"),
+                "timestamp": .string("\(timestamp)")
+            ])
             
             // 获取签名头部
             var headers = try signer.sign(
@@ -64,8 +73,10 @@ public final class TencentHunyuanProvider: LLMProvider {
                 action: "ChatCompletions"
             )
             
-            // 合并端点���义的头部
+            // 合并端点定义的头部
             endpoint.headers?.forEach { headers[$0.key] = $0.value }
+            
+            logger.debug("Sending request to Tencent Hunyuan")
             
             // 发送请求
             let response: TencentHunyuanResponse = try await apiService.send(
@@ -76,8 +87,14 @@ public final class TencentHunyuanProvider: LLMProvider {
             
             // 转换响应
             guard let firstChoice = response.response.choices.first else {
+                logger.error("No choices in response")
                 throw LLMError.responseParsing("No choices in response")
             }
+            
+            logger.info("Request completed successfully", metadata: [
+                "requestId": .string(response.response.requestId),
+                "totalTokens": .string("\(response.response.usage.totalTokens)")
+            ])
             
             return LLMResponse(
                 content: firstChoice.message.content,
@@ -90,7 +107,7 @@ public final class TencentHunyuanProvider: LLMProvider {
             )
             
         } catch {
-            logger.error("LLM request failed", metadata: [
+            logger.error("Request failed", metadata: [
                 "error": .string(String(describing: error))
             ])
             throw error
@@ -99,12 +116,15 @@ public final class TencentHunyuanProvider: LLMProvider {
     
     public func executeStream(_ request: LLMRequest) async throws -> AsyncThrowingStream<String, Error> {
         guard validateConfig(request.config) else {
+            logger.error("Invalid configuration for stream request")
             throw LLMError.invalidConfiguration
         }
         
         return AsyncThrowingStream { continuation in
             Task {
                 do {
+                    logger.debug("Starting stream request")
+                    
                     // 修改请求配置为流式
                     var streamRequest = request
                     streamRequest.config.stream = true
@@ -120,6 +140,7 @@ public final class TencentHunyuanProvider: LLMProvider {
                         }
                     }
                     
+                    logger.info("Stream request completed")
                     continuation.finish()
                 } catch {
                     logger.error("Stream request failed", metadata: [
