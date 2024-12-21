@@ -32,7 +32,7 @@ struct TencentHunyuanInitializer: LLMInitializer {
             "region": .string(Environment.get("TENCENT_REGION") ?? "default")
         ])
         
-        let provider = TencentHunyuanProvider(config: config)
+        let provider = TencentHunyuanProvider(config: config, app: app)
         LLMConfiguration.shared.register(provider: provider, isActive: true, app: app)
     }
 } 

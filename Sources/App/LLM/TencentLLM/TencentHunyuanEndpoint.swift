@@ -6,11 +6,18 @@
 //
 
 import Foundation
+import Vapor
+import Logging
 
 /// 腾讯混元大模型 API 端点
-enum TencentHunyuanEndpoint: APIEndpoint {
-    /// 聊天补全
-    case chatCompletions(LLMRequest)
+struct TencentHunyuanEndpoint: APIEndpoint {
+    private let request: LLMRequest
+    private let logger: Logger
+    
+    init(request: LLMRequest, logger: Logger) {
+        self.request = request
+        self.logger = logger
+    }
     
     var path: String {
         "/"
@@ -21,30 +28,42 @@ enum TencentHunyuanEndpoint: APIEndpoint {
     }
     
     var headers: [String: String]? {
-        switch self {
-        case .chatCompletions:
-            return [
-                "Content-Type": "application/json",
-                "X-TC-Version": "2023-09-01",
-                "X-TC-Action": "ChatCompletions",
-                "X-TC-Language": "zh-CN",
-                "X-TC-Region": "ap-beijing"
-            ]
-        }
+        let source = "TencentHunyuanEndpoint.headers"
+        let headers = [
+            "Content-Type": "application/json",
+            "X-TC-Version": "2023-09-01",
+            "X-TC-Action": "ChatCompletions",
+            "X-TC-Language": "zh-CN",
+            "X-TC-Region": "ap-beijing"
+        ]
+        
+        logger.debug("Generated API headers", metadata: [
+            "headerCount": .string("\(headers.count)"),
+            "action": .string("ChatCompletions")
+        ], source: source)
+        
+        return headers
     }
     
     var body: Encodable? {
-        switch self {
-        case .chatCompletions(let request):
-            return TencentHunyuanRequest(from: request)
-        }
+        let source = "TencentHunyuanEndpoint.body"
+        logger.debug("Preparing request body", metadata: [
+            "model": .string(request.config.model),
+            "messageCount": .string("\(request.messages.count)")
+        ], source: source)
+        
+        return TencentHunyuanRequest(from: request)
     }
     
-    // 添加获取请求参数字典的方法
     var parameters: [String: Any]? {
-        switch self {
-        case .chatCompletions(let request):
-            return TencentHunyuanRequest(from: request).toDictionary()
-        }
+        let source = "TencentHunyuanEndpoint.parameters"
+        let params = TencentHunyuanRequest(from: request).toDictionary()
+        
+        logger.debug("Generated request parameters", metadata: [
+            "paramCount": .string("\(params.count)"),
+            "model": .string(request.config.model)
+        ], source: source)
+        
+        return params
     }
 } 

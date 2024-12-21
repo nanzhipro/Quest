@@ -21,13 +21,20 @@ final class NetworkService: NetworkServiceProtocol {
         client: HTTPClient,
         baseURL: String,
         decoder: JSONDecoder = .init(),
-        encoder: JSONEncoder = .init()
+        encoder: JSONEncoder = .init(),
+        logger: Logger? = nil
     ) {
         self.client = client
         self.baseURL = baseURL
         self.decoder = decoder
         self.encoder = encoder
-        self.logger = Logger(label: "NetworkService")
+        if let logger = logger {
+            self.logger = logger
+        } else {
+            var logger = Logger(label: "NetworkService")
+            logger.logLevel = Environment.logLevel
+            self.logger = logger
+        }
     }
     
     func request<T: Decodable>(

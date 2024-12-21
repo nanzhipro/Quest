@@ -19,7 +19,7 @@ public final class TencentHunyuanProvider: LLMProvider {
     private let config: TencentHunyuanConfig
     private let httpClient: HTTPClient
     
-    public init(config: TencentHunyuanConfig) {
+    public init(config: TencentHunyuanConfig, app: Application) {
         let endpoint = "hunyuan.tencentcloudapi.com"
         let service = "hunyuan"
         
@@ -31,17 +31,19 @@ public final class TencentHunyuanProvider: LLMProvider {
         
         self.apiService = APIService(networkService: NetworkService(
             client: httpClient,
-            baseURL: "https://\(endpoint)"
+            baseURL: "https://\(endpoint)",
+            logger: app.logger
         ))
         
         self.signer = TencentHunyuanSigner(
             secretId: config.secretId,
             secretKey: config.secretKey,
             service: service,
-            endpoint: endpoint
+            endpoint: endpoint,
+            app: app
         )
         
-        self.logger = Logger(label: "TencentHunyuanProvider")
+        self.logger = app.logger
     }
     
     deinit {
@@ -60,7 +62,7 @@ public final class TencentHunyuanProvider: LLMProvider {
         
         do {
             let timestamp = Int(floor(Date().timeIntervalSince1970))
-            let endpoint = TencentHunyuanEndpoint.chatCompletions(request)
+            let endpoint = TencentHunyuanEndpoint(request: request, logger: logger)
             
             logger.info("Preparing request", metadata: [
                 "action": .string("ChatCompletions"),
@@ -153,7 +155,7 @@ public final class TencentHunyuanProvider: LLMProvider {
                     
                     let response = try await execute(streamRequest)
                     
-                    // 解析 SSE 格式的响应
+                    // 解析 SSE 格式���响应
                     let chunks = response.content.components(separatedBy: "\n\n")
                     for chunk in chunks where !chunk.isEmpty {
                         if chunk.hasPrefix("data: ") {
