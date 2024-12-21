@@ -7,6 +7,25 @@ import JWT
 
 // configures your application
 public func configure(_ app: Application) async throws {
+    // 从环境变量设置日志级别
+    app.logger.logLevel = Environment.logLevel
+    
+    // 配置日志服务
+    let loggingConfig = LoggingConfiguration(
+        label: "app.vapor",
+        metadata: [
+            "app": .string("VaporApp"),
+            "environment": .string(app.environment.name),
+            "logLevel": .string("\(Environment.logLevel)")
+        ]
+    )
+    app.log = LoggingService(configuration: loggingConfig)
+    
+    app.log.info("Application starting", metadata: [
+        "environment": .string(app.environment.name),
+        "logLevel": .string("\(app.logger.logLevel)")
+    ], source: "configure")
+    
     // 加载 .env 文件
     _ = try Environment.detect()
     app.logger.info("Environment variables loaded")
@@ -52,14 +71,4 @@ public func configure(_ app: Application) async throws {
     
     // register routes
     try routes(app)
-
-    // 配置日志服务
-    let loggingConfiguration = LoggingConfiguration(
-        label: "app.vapor",
-        metadata: [
-            "app": .string("VaporApp"),
-            "environment": .string(app.environment.name)
-        ]
-    )
-    app.log = LoggingService(configuration: loggingConfiguration)
 }

@@ -34,20 +34,34 @@ struct LLMResponseDTO: Content {
 struct LLMController {
     /// 创建路由
     func routes(_ app: Application) throws {
+        app.log.debug("Registering LLM routes", metadata: nil, source: "LLMController.routes")
+        
         let llm = app.grouped("api", "v1", "llm")
         
         // 聊天补全接口
         llm.post("chat") { req -> LLMResponseDTO in
-            req.logger.info("Received chat request")
+            let source = "LLMController.chat"
+            req.log.info("Processing chat request", metadata: [
+                "path": .string("/api/v1/llm/chat"),
+                "contentType": .string(req.headers.first(name: .contentType) ?? "none")
+            ], source: source)
             
             let requestDTO = try req.validate(content: LLMRequestDTO.self)
             
+            req.log.info("Request parameters", metadata: [
+                "model": .string(requestDTO.model),
+                "temperature": .string("\(requestDTO.temperature ?? 0.7)"),
+                "stream": .string("\(requestDTO.stream ?? false)"),
+                "messageCount": .string("\(requestDTO.messages.count)")
+            ], source: source)
+            
             guard !requestDTO.messages.isEmpty else {
-                req.logger.warning("Empty messages received")
+                req.log.warning("Empty messages received", metadata: nil, source: source)
                 throw LLMError.invalidRequest
             }
             
             do {
+                req.log.info("Getting LLM provider", metadata: nil, source: source)
                 let provider = try LLMConfiguration.shared.getProvider()
                 
                 let config = LLMConfig(
@@ -61,8 +75,17 @@ struct LLMController {
                     config: config
                 )
                 
+                req.log.info("Executing LLM request", metadata: [
+                    "model": .string(config.model),
+                    "provider": .string(provider.name)
+                ], source: source)
+                
                 let response = try await provider.execute(request)
-                req.logger.info("Chat request completed successfully")
+                
+                req.log.info("Chat request completed", metadata: [
+                    "requestId": .string(response.requestId),
+                    "tokenUsage": .string("\(response.usage)")
+                ], source: source)
                 
                 return LLMResponseDTO(
                     content: response.content,
@@ -70,19 +93,29 @@ struct LLMController {
                     requestId: response.requestId
                 )
             } catch {
-                req.logger.error("Chat request failed: \(error)")
+                req.log.error(error, message: "Chat request failed", metadata: nil, source: source)
                 throw error
             }
         }
         
         // 流式聊天补全接口
         llm.post("chat", "stream") { req async throws -> Response in
-            req.logger.info("Received stream chat request")
+            let source = "LLMController.chatStream"
+            req.log.debug("Processing stream request", metadata: [
+                "path": .string("/api/v1/llm/chat/stream"),
+                "contentType": .string(req.headers.first(name: .contentType) ?? "none")
+            ], source: source)
             
             let requestDTO = try req.validate(content: LLMRequestDTO.self)
             
+            req.log.debug("Stream request parameters", metadata: [
+                "model": .string(requestDTO.model),
+                "temperature": .string("\(requestDTO.temperature ?? 0.7)"),
+                "messageCount": .string("\(requestDTO.messages.count)")
+            ], source: source)
+            
             guard !requestDTO.messages.isEmpty else {
-                req.logger.warning("Empty messages received")
+                req.log.warning("Empty messages received for stream", metadata: nil, source: source)
                 throw LLMError.invalidRequest
             }
             
@@ -93,6 +126,7 @@ struct LLMController {
             )
             
             do {
+                req.log.debug("Getting LLM provider for stream", metadata: nil, source: source)
                 let provider = try LLMConfiguration.shared.getProvider()
                 
                 let config = LLMConfig(
@@ -106,21 +140,36 @@ struct LLMController {
                     config: config
                 )
                 
+                req.log.debug("Executing streaming request", metadata: [
+                    "model": .string(config.model),
+                    "provider": .string(provider.name)
+                ], source: source)
+                
                 let stream = try await provider.executeStream(request)
                 
                 response.body = .init(stream: { writer in
                     Task {
                         do {
+                            var chunkCount = 0
                             for try await chunk in stream {
+                                chunkCount += 1
+                                req.log.debug("Sending chunk", metadata: [
+                                    "chunkNumber": .string("\(chunkCount)"),
+                                    "chunkSize": .string("\(chunk.count)")
+                                ], source: source)
+                                
                                 let buffer = ByteBuffer(string: "data: \(chunk)\n\n")
                                 _ = writer.write(.buffer(buffer))
                             }
                             
                             let doneBuffer = ByteBuffer(string: "data: [DONE]\n\n")
                             _ = writer.write(.buffer(doneBuffer))
-                            req.logger.info("Stream chat request completed successfully")
+                            
+                            req.log.info("Stream completed", metadata: [
+                                "totalChunks": .string("\(chunkCount)")
+                            ], source: source)
                         } catch {
-                            req.logger.error("Stream chat request failed: \(error)")
+                            req.log.error(error, message: "Stream processing failed", metadata: nil, source: source)
                             _ = writer.write(.error(error))
                         }
                     }
@@ -128,7 +177,7 @@ struct LLMController {
                 
                 return response
             } catch {
-                req.logger.error("Failed to initialize stream chat: \(error)")
+                req.log.error(error, message: "Failed to initialize stream", metadata: nil, source: source)
                 throw error
             }
         }

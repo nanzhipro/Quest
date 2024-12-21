@@ -26,7 +26,9 @@ enum TencentHunyuanEndpoint: APIEndpoint {
             return [
                 "Content-Type": "application/json",
                 "X-TC-Version": "2023-09-01",
-                "X-TC-Action": "ChatCompletions"
+                "X-TC-Action": "ChatCompletions",
+                "X-TC-Language": "zh-CN",
+                "X-TC-Region": "ap-beijing"
             ]
         }
     }
@@ -35,6 +37,14 @@ enum TencentHunyuanEndpoint: APIEndpoint {
         switch self {
         case .chatCompletions(let request):
             return TencentHunyuanRequest(from: request)
+        }
+    }
+    
+    // 添加获取请求参数字典的方法
+    var parameters: [String: Any]? {
+        switch self {
+        case .chatCompletions(let request):
+            return TencentHunyuanRequest(from: request).toDictionary()
         }
     }
 } 

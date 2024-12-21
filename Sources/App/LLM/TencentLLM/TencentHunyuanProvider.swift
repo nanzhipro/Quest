@@ -49,11 +49,12 @@ public final class TencentHunyuanProvider: LLMProvider {
     }
     
     public func execute(_ request: LLMRequest) async throws -> LLMResponse {
+        let source = "TencentHunyuanProvider.execute"
         guard validateConfig(request.config) else {
             logger.error("Invalid configuration", metadata: [
                 "model": .string(request.config.model),
                 "supportedModels": .string(supportedModels.joined(separator: ", "))
-            ])
+            ], source: source)
             throw LLMError.invalidConfiguration
         }
         
@@ -61,22 +62,36 @@ public final class TencentHunyuanProvider: LLMProvider {
             let timestamp = Int(floor(Date().timeIntervalSince1970))
             let endpoint = TencentHunyuanEndpoint.chatCompletions(request)
             
-            logger.debug("Preparing request", metadata: [
+            logger.info("Preparing request", metadata: [
                 "action": .string("ChatCompletions"),
-                "timestamp": .string("\(timestamp)")
-            ])
+                "timestamp": .string("\(timestamp)"),
+                "model": .string(request.config.model),
+                "messageCount": .string("\(request.messages.count)")
+            ], source: source)
             
             // 获取签名头部
             var headers = try signer.sign(
-                params: endpoint.body as! [String: Any],
+                params: endpoint.parameters ?? [:],
                 timestamp: timestamp,
                 action: "ChatCompletions"
             )
             
+            logger.info("Generated signature headers", metadata: [
+                "timestamp": .string("\(timestamp)"),
+                "headerCount": .string("\(headers.count)")
+            ], source: source)
+            
             // 合并端点定义的头部
             endpoint.headers?.forEach { headers[$0.key] = $0.value }
             
-            logger.debug("Sending request to Tencent Hunyuan")
+            // 添加区域头部
+            headers["X-TC-Region"] = config.region
+            
+            logger.info("Sending request", metadata: [
+                "region": .string(config.region),
+                "endpoint": .string(endpoint.path),
+                "method": .string(endpoint.method.rawValue)
+            ], source: source)
             
             // 发送请求
             let response: TencentHunyuanResponse = try await apiService.send(
@@ -85,16 +100,23 @@ public final class TencentHunyuanProvider: LLMProvider {
                 body: endpoint.body
             )
             
+            logger.info("Received response", metadata: [
+                "requestId": .string(response.response.requestId),
+                "hasNote": .string(response.response.note != nil ? "true" : "false"),
+                "choicesCount": .string("\(response.response.choices.count)"),
+                "usage": .string("\(response.response.usage)")
+            ], source: source)
+            
             // 转换响应
             guard let firstChoice = response.response.choices.first else {
-                logger.error("No choices in response")
+                logger.error("No choices in response", metadata: nil, source: source)
                 throw LLMError.responseParsing("No choices in response")
             }
             
             logger.info("Request completed successfully", metadata: [
                 "requestId": .string(response.response.requestId),
                 "totalTokens": .string("\(response.response.usage.totalTokens)")
-            ])
+            ], source: source)
             
             return LLMResponse(
                 content: firstChoice.message.content,
@@ -109,7 +131,7 @@ public final class TencentHunyuanProvider: LLMProvider {
         } catch {
             logger.error("Request failed", metadata: [
                 "error": .string(String(describing: error))
-            ])
+            ], source: source)
             throw error
         }
     }
