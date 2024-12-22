@@ -10,9 +10,9 @@ import Vapor
 
 /// LLM 消息角色
 public enum LLMRole: String, Sendable {
-    case system = "System"
-    case user = "User"
-    case assistant = "Assistant"
+    case system = "system"
+    case user = "user"
+    case assistant = "assistant"
 }
 
 extension LLMRole: Codable {
@@ -58,7 +58,7 @@ public struct LLMMessage: Codable, Sendable {
 }
 
 /// LLM 请求配置
-public struct LLMConfig: Codable {
+public struct LLMConfig: Codable, Sendable {
     public let model: String
     public let temperature: Double
     public var stream: Bool

@@ -32,7 +32,7 @@ final class TencentHunyuanSigner: @unchecked Sendable {
             "service": .string(service)
         ], source: source)
         
-        let date = formatDate(timestamp)
+        let date = TencentHunyuanProvider.formatUTCDate(from: timestamp)
         let credentialScope = "\(date)/\(service)/tc3_request"
         let algorithm = "TC3-HMAC-SHA256"
         
@@ -84,11 +84,7 @@ final class TencentHunyuanSigner: @unchecked Sendable {
     }
     
     private func formatDate(_ timestamp: Int) -> String {
-        let date = Date(timeIntervalSince1970: TimeInterval(timestamp))
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        formatter.timeZone = TimeZone(identifier: "UTC")
-        return formatter.string(from: date)
+        return TencentHunyuanProvider.formatUTCDate(from: timestamp)
     }
     
     private func buildCanonicalRequest(params: [String: Any], action: String) throws -> String {
@@ -103,7 +99,7 @@ final class TencentHunyuanSigner: @unchecked Sendable {
         let canonicalUri = "/"
         let canonicalQueryString = ""
         let canonicalHeaders = """
-        content-type:application/json
+        content-type:application/json; charset=utf-8
         host:\(endpoint)
         x-tc-action:\(action.lowercased())
         
@@ -130,21 +126,54 @@ final class TencentHunyuanSigner: @unchecked Sendable {
     private func calculateSignature(date: String, stringToSign: String) throws -> String {
         let source = "TencentHunyuanSigner.calculateSignature"
         
-        logger.debug("Calculating signature steps", metadata: nil, source: source)
-        
-        // 1. 派生签名密钥
-        let secretDate = hmac(key: "TC3\(secretKey)".data(using: .utf8)!, data: date.data(using: .utf8)!)
-        let secretService = hmac(key: secretDate, data: service.data(using: .utf8)!)
-        let secretSigning = hmac(key: secretService, data: "tc3_request".data(using: .utf8)!)
-        
-        // 2. 计算签名
-        let signature = hmac(key: secretSigning, data: stringToSign.data(using: .utf8)!)
-        
-        logger.debug("Signature calculation completed", metadata: [
-            "signatureLength": .string("\(signature.count)")
+        logger.debug("Starting signature calculation", metadata: [
+            "date": .string(date),
+            "stringToSign": .string(stringToSign)
         ], source: source)
         
-        return signature.map { String(format: "%02hhx", $0) }.joined()
+        // 1. 计算 secretDate
+        let keyData = Data("TC3\(secretKey)".utf8)
+        let dateData = Data(date.utf8)
+        var symmetricKey = SymmetricKey(data: keyData)
+        let secretDate = HMAC<SHA256>.authenticationCode(for: dateData, using: symmetricKey)
+        let secretDateString = Data(secretDate).map { String(format: "%02hhx", $0) }.joined()
+        
+        logger.debug("Calculated secretDate", metadata: [
+            "secretDate": .string(secretDateString)
+        ], source: source)
+        
+        // 2. 计算 secretService
+        let serviceData = Data(service.utf8)
+        symmetricKey = SymmetricKey(data: Data(secretDate))
+        let secretService = HMAC<SHA256>.authenticationCode(for: serviceData, using: symmetricKey)
+        let secretServiceString = Data(secretService).map { String(format: "%02hhx", $0) }.joined()
+        
+        logger.debug("Calculated secretService", metadata: [
+            "secretService": .string(secretServiceString)
+        ], source: source)
+        
+        // 3. 计算 secretSigning
+        let signingData = Data("tc3_request".utf8)
+        symmetricKey = SymmetricKey(data: Data(secretService))
+        let secretSigning = HMAC<SHA256>.authenticationCode(for: signingData, using: symmetricKey)
+        let secretSigningString = Data(secretSigning).map { String(format: "%02hhx", $0) }.joined()
+        
+        logger.debug("Calculated secretSigning", metadata: [
+            "secretSigning": .string(secretSigningString)
+        ], source: source)
+        
+        // 4. 计算最终签名
+        let stringToSignData = Data(stringToSign.utf8)
+        symmetricKey = SymmetricKey(data: Data(secretSigning))
+        let signature = HMAC<SHA256>.authenticationCode(for: stringToSignData, using: symmetricKey)
+            .map { String(format: "%02hhx", $0) }
+            .joined()
+        
+        logger.debug("Final signature calculated", metadata: [
+            "signature": .string("\(signature)")
+        ], source: source)
+        
+        return signature
     }
     
     private func hashPayload(_ params: [String: Any]) throws -> String {
@@ -154,7 +183,7 @@ final class TencentHunyuanSigner: @unchecked Sendable {
     
     private func sha256(_ string: String) -> String {
         let data = string.data(using: .utf8)!
-        return SHA256.hash(data: data).map { String(format: "%02hhx", $0) }.joined()
+        return SHA256.hash(data: data).compactMap { String(format: "%02hhx", $0) }.joined()
     }
     
     private func hmac(key: Data, data: Data) -> Data {

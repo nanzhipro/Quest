@@ -19,6 +19,17 @@ public final class TencentHunyuanProvider: LLMProvider {
     private let config: TencentHunyuanConfig
     private let httpClient: HTTPClient
     
+    // 添加静态方法用于时间戳和日期的处理
+    static func formatUTCDate(from timestamp: Int) -> String {
+        // Date 必须从时间戳 X-TC-Timestamp 计算得到，且时区为 UTC+0。
+        // 详细参考： https://cloud.tencent.com/document/product/598/38504
+        let utcDate = Date(timeIntervalSince1970: TimeInterval(timestamp))
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        dateFormatter.timeZone = TimeZone(identifier: "UTC")
+        return dateFormatter.string(from: utcDate)
+    }
+    
     public init(config: TencentHunyuanConfig, app: Application) {
         let endpoint = "hunyuan.tencentcloudapi.com"
         let service = "hunyuan"
@@ -61,12 +72,27 @@ public final class TencentHunyuanProvider: LLMProvider {
         }
         
         do {
-            let timestamp = Int(floor(Date().timeIntervalSince1970))
-            let endpoint = TencentHunyuanEndpoint(request: request, logger: logger)
+            // 使用 UTC 时区生成时间戳
+            let utcTimestamp = Int(Date().timeIntervalSince1970)
+            
+            // 使用统一的日期格式化方法
+            let utcDateString = Self.formatUTCDate(from: utcTimestamp)
+            
+            logger.debug("UTC timestamp validation", metadata: [
+                "timestamp": .string("\(utcTimestamp)"),
+                "utcDate": .string(utcDateString)
+            ], source: source)
+
+            let endpoint = TencentHunyuanEndpoint(
+                request: request,
+                logger: logger,
+                timestamp: utcTimestamp
+            )
             
             logger.info("Preparing request", metadata: [
                 "action": .string("ChatCompletions"),
-                "timestamp": .string("\(timestamp)"),
+                "timestamp": .string("\(utcTimestamp)"),
+                "utcDate": .string(utcDateString),
                 "model": .string(request.config.model),
                 "messageCount": .string("\(request.messages.count)")
             ], source: source)
@@ -74,14 +100,12 @@ public final class TencentHunyuanProvider: LLMProvider {
             // 获取签名头部
             var headers = try signer.sign(
                 params: endpoint.parameters ?? [:],
-                timestamp: timestamp,
+                timestamp: utcTimestamp,
                 action: "ChatCompletions"
             )
-
-
             
             logger.info("Generated signature headers", metadata: [
-                "timestamp": .string("\(timestamp)"),
+                "timestamp": .string("\(utcTimestamp)"),
                 "headerCount": .string("\(headers.count)")
             ], source: source)
             

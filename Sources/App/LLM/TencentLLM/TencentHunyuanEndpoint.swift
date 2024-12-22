@@ -15,10 +15,10 @@ struct TencentHunyuanEndpoint: APIEndpoint {
     private let logger: Logger
     private let timestamp: Int
     
-    init(request: LLMRequest, logger: Logger) {
+    init(request: LLMRequest, logger: Logger, timestamp: Int) {
         self.request = request
         self.logger = logger
-        self.timestamp = Int(Date().timeIntervalSince1970)
+        self.timestamp = timestamp
     }
     
     var path: String {
@@ -39,7 +39,7 @@ struct TencentHunyuanEndpoint: APIEndpoint {
             "X-TC-Language": "zh-CN",
             "X-TC-Version": "2023-09-01",
             "X-TC-Region": "ap-beijing",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json; charset=utf-8"
         ]
         
         logger.debug("Generated API headers", metadata: [
