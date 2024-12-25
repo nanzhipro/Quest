@@ -14,11 +14,13 @@ struct TencentHunyuanEndpoint: APIEndpoint {
     private let request: LLMRequest
     private let logger: Logger
     private let timestamp: Int
+    private let hunyuanRequest: TencentHunyuanRequest
     
     init(request: LLMRequest, logger: Logger, timestamp: Int) {
         self.request = request
         self.logger = logger
         self.timestamp = timestamp
+        self.hunyuanRequest = TencentHunyuanRequest(from: request)
     }
     
     var path: String {
@@ -58,19 +60,24 @@ struct TencentHunyuanEndpoint: APIEndpoint {
             "messageCount": .string("\(request.messages.count)")
         ], source: source)
         
-        return TencentHunyuanRequest(from: request)
+        return hunyuanRequest
     }
     
     var parameters: [String: Any]? {
         let source = "TencentHunyuanEndpoint.parameters"
-        let params = TencentHunyuanRequest(from: request).toDictionary()
+        
+        guard let data = try? JSONEncoder().encode(hunyuanRequest),
+              let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            logger.error("Failed to convert request to parameters", source: source)
+            return nil
+        }
         
         logger.debug("Generated request parameters", metadata: [
-            "paramCount": .string("\(params.count)"),
+            "paramCount": .string("\(dict.count)"),
             "model": .string(request.config.model)
         ], source: source)
         
-        return params
+        return dict
     }
     
     var currentTimestamp: Int {
