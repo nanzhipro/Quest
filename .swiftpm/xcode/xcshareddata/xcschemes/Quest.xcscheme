@@ -83,6 +83,11 @@
             value = "debug"
             isEnabled = "YES">
          </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "TENCENT_HUNYUAN_API_KEY"
+            value = "sk-u384jtAzqHoRsRV5p19W8RnSRMPypgYrxahNcSRDWKk1eZPP"
+            isEnabled = "YES">
+         </EnvironmentVariable>
       </EnvironmentVariables>
    </LaunchAction>
    <ProfileAction

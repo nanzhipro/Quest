@@ -8,6 +8,7 @@
 import Foundation
 
 protocol APIServiceProtocol: Sendable {
-    func fetch<T: Decodable>(_ endpoint: APIEndpoint) async throws -> T
-    func send<T: Decodable>(_ endpoint: APIEndpoint, headers: [String: String]?, body: Encodable?) async throws -> T
-} 
+  func fetch<T: Decodable>(_ endpoint: APIEndpoint) async throws -> T
+  func send<T: Decodable>(_ endpoint: APIEndpoint, headers: [String: String]?, body: Encodable?)
+    async throws -> T
+}

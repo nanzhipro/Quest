@@ -8,16 +8,16 @@
 import Foundation
 
 public struct DoubaoLLMConfig: LLMProviderConfig {
-    public let identifier = "doubao.llm"
-    public let apiKey: String
-    public let endpoint: String
-    
-    public init(apiKey: String, endpoint: String) {
-        self.apiKey = apiKey
-        self.endpoint = endpoint
-    }
-    
-    public func validate() -> Bool {
-        !apiKey.isEmpty && !endpoint.isEmpty
-    }
-} 
+  public let identifier = "doubao.llm"
+  public let apiKey: String
+  public let endpoint: String
+
+  public init(apiKey: String, endpoint: String) {
+    self.apiKey = apiKey
+    self.endpoint = endpoint
+  }
+
+  public func validate() -> Bool {
+    !apiKey.isEmpty && !endpoint.isEmpty
+  }
+}

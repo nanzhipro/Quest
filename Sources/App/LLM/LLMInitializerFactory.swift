@@ -9,18 +9,21 @@ import Vapor
 
 // 定义 LLM 提供者类型
 enum LLMProviderType {
-    case tencentHunyuan
-    case doubao
+  case tencentHunyuan
+  case tencentHunyuanOpenAI
+  case doubao
 }
 
 // 工厂类，用于创建 LLM 初始化器
 struct LLMInitializerFactory {
-    static func createInitializer(for provider: LLMProviderType) -> LLMInitializer {
-        switch provider {
-        case .tencentHunyuan:
-            return TencentHunyuanInitializer()
-        case .doubao:
-            return DoubaoLLMInitializer()
-        }
+  static func createInitializer(for provider: LLMProviderType) -> LLMInitializer {
+    switch provider {
+    case .tencentHunyuan:
+      return TencentHunyuanInitializer()
+    case .tencentHunyuanOpenAI:
+      return TencentHunyuanOpenAIInitializer()
+    case .doubao:
+      return DoubaoLLMInitializer()
     }
-} 
+  }
+}

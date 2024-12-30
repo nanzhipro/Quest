@@ -8,11 +8,11 @@
 import Vapor
 
 protocol LLMInitializer {
-    func initialize(app: Application) throws
+  func initialize(app: Application) throws
 }
 
 enum LLMInitializerError: Error {
-    case missingConfiguration
-    case invalidConfiguration
-    case initializationFailed(Error)
-} 
+  case missingConfiguration
+  case invalidConfiguration
+  case initializationFailed(Error)
+}

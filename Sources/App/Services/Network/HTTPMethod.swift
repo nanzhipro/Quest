@@ -7,9 +7,9 @@
 
 /// HTTP 请求方法
 public enum HTTPMethod: String {
-    case get = "GET"
-    case post = "POST"
-    case put = "PUT"
-    case delete = "DELETE"
-    case patch = "PATCH"
-} 
+  case get = "GET"
+  case post = "POST"
+  case put = "PUT"
+  case delete = "DELETE"
+  case patch = "PATCH"
+}

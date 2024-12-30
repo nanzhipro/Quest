@@ -19,6 +19,8 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.65.0"),
         // 🔑 JSON Web Token (JWT) support
         .package(url: "https://github.com/vapor/jwt.git", from: "4.0.0"),
+        // 🤖 OpenAI SDK
+        .package(url: "https://github.com/MacPaw/OpenAI.git", branch: "main"),
     ],
     targets: [
         .executableTarget(
@@ -31,6 +33,7 @@ let package = Package(
                 .product(name: "NIOCore", package: "swift-nio"),
                 .product(name: "NIOPosix", package: "swift-nio"),
                 .product(name: "JWT", package: "jwt"),
+                .product(name: "OpenAI", package: "OpenAI")
             ],
             swiftSettings: [
                 .unsafeFlags(["-cross-module-optimization"], .when(configuration: .release))
