@@ -17,7 +17,12 @@ public struct DoubaoLLMConfig: LLMProviderConfig {
     self.endpoint = endpoint
   }
 
-  public func validate() -> Bool {
-    !apiKey.isEmpty && !endpoint.isEmpty
+  public func validate() throws {
+    guard !apiKey.isEmpty else {
+      throw LLMError.invalidConfiguration("API Key cannot be empty")
+    }
+    guard !endpoint.isEmpty else {
+      throw LLMError.invalidConfiguration("Endpoint cannot be empty")
+    }
   }
 }

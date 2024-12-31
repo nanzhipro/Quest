@@ -71,7 +71,7 @@ public final class TencentHunyuanProvider: LLMProvider {
           "model": .string(request.config.model),
           "supportedModels": .string(supportedModels.joined(separator: ", ")),
         ], source: source)
-      throw LLMError.invalidConfiguration
+      throw LLMError.invalidConfiguration("Unsupported model: \(request.config.model)")
     }
 
     do {
@@ -121,16 +121,14 @@ public final class TencentHunyuanProvider: LLMProvider {
       // 合并端点定义的头部
       endpoint.headers?.forEach { headers[$0.key] = $0.value }
 
-      // 添加区域头部
-      headers["X-TC-Region"] = config.region
-
       logger.info(
         "Sending request",
         metadata: [
-          "region": .string(config.region),
           "endpoint": .string(endpoint.path),
           "method": .string(endpoint.method.rawValue),
-        ], source: source)
+        ],
+        source: source
+      )
 
       // 发送请求
       let response: TencentHunyuanResponse = try await apiService.send(
@@ -162,7 +160,9 @@ public final class TencentHunyuanProvider: LLMProvider {
       // 转换响应
       guard let firstChoice = response.response.choices.first else {
         logger.error("No choices in response", metadata: nil, source: source)
-        throw LLMError.responseParsing("No choices in response")
+        throw LLMError.requestFailed(NSError(domain: "LLM", code: -1, userInfo: [
+          NSLocalizedDescriptionKey: "No choices in response"
+        ]))
       }
 
       logger.info(
