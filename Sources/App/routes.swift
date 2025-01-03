@@ -15,7 +15,6 @@ func routes(_ app: Application) throws {
 
   // 注册其他 API 控制器
   try api.register(collection: MemberController())
-  try api.register(collection: TodoController())
 
   app.get("health") { req -> String in
     return "healthy"

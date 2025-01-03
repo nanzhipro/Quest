@@ -52,8 +52,6 @@ public func configure(_ app: Application) async throws {
         tls: .prefer(try .init(configuration: .clientDefault)))
     ), as: .psql)
 
-  app.migrations.add(CreateTodo())
-
   app.views.use(.leaf)
 
   // 配置 JWT
