@@ -73,6 +73,11 @@ public func configure(_ app: Application) async throws {
   // 注册 LLM 路由
   try LLMController().routes(app)
 
+  // 注释掉数据库迁移，使用内存存储进行测试
+  // app.migrations.add(CreatePrompt())
+  // app.migrations.add(CreateInitialPrompt())
+
   // register routes
   try routes(app)
+  try app.register(collection: PromptController())
 }
