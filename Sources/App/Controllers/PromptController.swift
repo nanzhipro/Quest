@@ -16,7 +16,7 @@ struct PromptController: RouteCollection {
   }
 
   func boot(routes: RoutesBuilder) throws {
-    let prompts = routes.grouped("api", "prompts")
+    let prompts = routes.grouped("api", "v1", "prompts")
     prompts.get(use: getLatestPrompt)
   }
 

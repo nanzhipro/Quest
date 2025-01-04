@@ -5,7 +5,7 @@
 ### 接口说明
 
 - 请求方法：GET
-- 请求路径：/api/prompts
+- 请求路径：/api/v1/prompts
 - 响应格式：JSON
 
 ### 响应说明
@@ -17,7 +17,7 @@
 ### 示例
 
 ```bash
-curl -X GET http://your-server/api/prompts
+curl -X GET http://your-server/api/v1/prompts
 ```
 
 ### 响应示例
