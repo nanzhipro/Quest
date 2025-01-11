@@ -12,6 +12,7 @@ enum LLMProviderType {
   case tencentHunyuan
   case tencentHunyuanOpenAI
   case doubao
+  case deepseek
 }
 
 // 工厂类，用于创建 LLM 初始化器
@@ -24,6 +25,9 @@ struct LLMInitializerFactory {
       return TencentHunyuanOpenAIInitializer()
     case .doubao:
       return DoubaoLLMInitializer()
+    case .deepseek:
+      return DeepseekOpenAIInitializer()
     }
   }
 }
+

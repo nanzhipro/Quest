@@ -88,6 +88,16 @@
             value = "sk-u384jtAzqHoRsRV5p19W8RnSRMPypgYrxahNcSRDWKk1eZPP"
             isEnabled = "YES">
          </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "LLM_PROVIDER"
+            value = "deepseek"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "DEEPSEEK_API_KEY"
+            value = "sk-02f46793ddae48eaaab25c5f367beb93"
+            isEnabled = "YES">
+         </EnvironmentVariable>
       </EnvironmentVariables>
    </LaunchAction>
    <ProfileAction

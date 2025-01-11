@@ -61,7 +61,7 @@ public func configure(_ app: Application) async throws {
   do {
     // 从环境变量或配置中获取要使用的 LLM 提供者
     let provider: LLMProviderType =
-      Environment.get("LLM_PROVIDER") == "doubao" ? .doubao : .tencentHunyuanOpenAI
+      Environment.get("LLM_PROVIDER") == "deepseek" ? .deepseek : .tencentHunyuanOpenAI
 
     // 建并执行初始化
     let initializer = LLMInitializerFactory.createInitializer(for: provider)
