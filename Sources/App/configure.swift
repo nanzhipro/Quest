@@ -46,9 +46,9 @@ public func configure(_ app: Application) async throws {
         hostname: Environment.get("DATABASE_HOST") ?? "localhost",
         port: Environment.get("DATABASE_PORT").flatMap(Int.init(_:))
           ?? SQLPostgresConfiguration.ianaPortNumber,
-        username: Environment.get("DATABASE_USERNAME") ?? "vapor_username",
-        password: Environment.get("DATABASE_PASSWORD") ?? "vapor_password",
-        database: Environment.get("DATABASE_NAME") ?? "vapor_database",
+        username: Environment.get("DATABASE_USERNAME") ?? "yourusername",
+        password: Environment.get("DATABASE_PASSWORD") ?? "yourpassword",
+        database: Environment.get("DATABASE_NAME") ?? "yourdatabase",
         tls: .prefer(try .init(configuration: .clientDefault)))
     ), as: .psql)
 
@@ -74,10 +74,15 @@ public func configure(_ app: Application) async throws {
   try LLMController().routes(app)
 
   // 注释掉数据库迁移，使用内存存储进行测试
-  // app.migrations.add(CreatePrompt())
-  // app.migrations.add(CreateInitialPrompt())
+  app.migrations.add(CreatePrompt())
+  app.migrations.add(CreateInitialPrompt())
+
+  // 添加自动迁移（仅限开发环境）
+  if app.environment == .development {
+      try await app.autoMigrate().get()
+  }
 
   // register routes
   try routes(app)
-  try app.register(collection: PromptController())
+  try app.register(collection: PromptController(promptService: DatabasePromptService(db: app.db)))
 }

@@ -9,19 +9,19 @@ import Fluent
 import Vapor
 
 struct PromptController: RouteCollection {
-  private let promptService: PromptService
+    private let promptService: PromptService
 
-  init(promptService: PromptService = InMemoryPromptService.shared) {
-    self.promptService = promptService
-  }
-
-  func boot(routes: RoutesBuilder) throws {
-    let prompts = routes.grouped("api", "v1", "prompts")
-    prompts.get(use: getLatestPrompt)
-  }
-
-  func getLatestPrompt(req: Request) async throws -> PromptResponse {
-    let latestPrompt = try await promptService.getLatestPrompt()
-    return PromptResponse(prompt: latestPrompt)
-  }
+    init(promptService: PromptService) {
+        self.promptService = promptService
+    }
+    
+    func boot(routes: RoutesBuilder) throws {
+        let prompts = routes.grouped("api", "v1", "prompts")
+        prompts.get(use: getLatestPrompt)
+    }
+    
+    func getLatestPrompt(req: Request) async throws -> PromptResponse {
+        let latestPrompt = try await promptService.getLatestPrompt()
+        return PromptResponse(prompt: latestPrompt)
+    }
 }
