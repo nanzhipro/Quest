@@ -4,7 +4,8 @@ import Vapor
 
 public final class TencentHunyuanOpenAIProvider: LLMProvider {
     public let name = "TencentHunyuanOpenAI"
-    public let supportedModels = ["hunyuan-lite"]
+    // https://cloud.tencent.com/document/product/1729/97731
+    public let supportedModels = ["hunyuan-lite", "hunyuan-large"]
     
     private let openAI: OpenAI
     private let configuration: TencentHunyuanOpenAIConfig
@@ -110,7 +111,7 @@ public final class TencentHunyuanOpenAIProvider: LLMProvider {
             }
             
             logger.info("Request completed", metadata: ["requestId": .string("\(requestId)")])
-            return String(describing: response)
+            return response.string ?? ""
         }
         
         let activeCount = await counter.getActiveRequestCount()

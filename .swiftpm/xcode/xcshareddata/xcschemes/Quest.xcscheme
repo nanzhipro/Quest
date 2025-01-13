@@ -90,7 +90,7 @@
          </EnvironmentVariable>
          <EnvironmentVariable
             key = "LLM_PROVIDER"
-            value = "deepseek"
+            value = "tencentHunyuanOpenAI"
             isEnabled = "YES">
          </EnvironmentVariable>
          <EnvironmentVariable

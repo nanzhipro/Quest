@@ -117,7 +117,7 @@ public final class DeepseekOpenAIProvider: LLMProvider {
             }
             
             logger.info("Request completed", metadata: ["requestId": .string("\(requestId)")])
-            return String(describing: response)
+            return response.string ?? ""
         }
         
         let activeCount = await counter.getActiveRequestCount()
