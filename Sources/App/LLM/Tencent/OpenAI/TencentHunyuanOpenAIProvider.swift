@@ -13,92 +13,72 @@ public final class TencentHunyuanOpenAIProvider: LLMProvider {
     private let semaphore: AsyncSemaphore
     private let logger: Logger
     
-    // 使用 actor 来管理可变状态
-    private actor RequestCounter {
-        private var activeRequestCount: Int = 0
-        private var requestCounter: Int = 0
+    // 使用 actor 管理请求状态
+    private actor RequestState {
+        private var activeCount = 0
+        private var requestId = 0
         
-        func incrementActiveRequests() {
-            activeRequestCount += 1
-        }
-        
-        func decrementActiveRequests() -> Int {
-            activeRequestCount -= 1
-            return activeRequestCount
-        }
-        
-        func getActiveRequestCount() -> Int {
-            activeRequestCount
-        }
-        
-        func nextRequestId() -> Int {
-            requestCounter += 1
-            return requestCounter
-        }
+        func incrementActive() -> Int { activeCount += 1; return activeCount }
+        func decrementActive() -> Int { activeCount -= 1; return activeCount }
+        func nextRequestId() -> Int { requestId += 1; return requestId }
+        func currentActive() -> Int { activeCount }
     }
     
-    private let counter: RequestCounter
+    private let state: RequestState
     
     init(config: TencentHunyuanOpenAIConfig, app: Application) {
         self.configuration = config
         self.logger = app.logger
-        self.counter = RequestCounter()
+        self.state = RequestState()
         
         self.requestQueue = RequestQueue(maxQueueSize: configuration.maxQueueSize)
         self.semaphore = AsyncSemaphore(value: configuration.maxConcurrentRequests)
         
-        let openAIConfig = OpenAI.Configuration(
+        self.openAI = OpenAI(configuration: .init(
             token: configuration.apiToken,
             host: configuration.host,
             timeoutInterval: configuration.timeoutInterval
-        )
-        
-        self.openAI = OpenAI(configuration: openAIConfig)
+        ))
     }
     
     public func execute(_ request: LLMRequest) async throws -> LLMResponse {
-        let responseContent = try await chat(request.messages[0].content, priority: 0)
-        return LLMResponse(content: responseContent, requestId: UUID().uuidString)
+        let content = try await chat(request.messages[0].content)
+        return LLMResponse(content: content, requestId: UUID().uuidString)
     }
     
-    public func validateConfig(_ config: LLMConfig) -> Bool {
-        return true
-    }
+    public func validateConfig(_ config: LLMConfig) -> Bool { true }
     
-    private func processQueuedRequests() async {
-        logger.debug("Starting queue processor")
+    private func processQueue() async {
         while let request = await requestQueue.dequeue() {
-            logger.debug("Processing next queued request")
             Task {
                 do {
                     _ = try await request.operation()
-                    logger.debug("Queued request completed")
                 } catch {
                     logger.error("Queued request failed: \(error)")
                 }
             }
             await Task.yield()
         }
-        logger.debug("Queue empty, processor stopped")
     }
     
     public func chat(_ message: String, priority: Int = 0) async throws -> String {
-        let requestId = await counter.nextRequestId()
-        logger.info("New request initiated", metadata: ["requestId": .string("\(requestId)"), "message": .string(message.prefix(50).description)])
-        
-        let operation: () async throws -> String = { [weak self] in
+        let requestId = await state.nextRequestId()
+        let operation = { [weak self] () async throws -> String in
             guard let self = self else { throw TencentHunyuanOpenAIError.invalidConfiguration }
             
-            await self.counter.incrementActiveRequests()
-            
-            defer {
-                Task.detached {
-                    let count = await self.counter.decrementActiveRequests()
-                    if count < self.configuration.maxConcurrentRequests {
-                        await self.processQueuedRequests()
-                    }
+            // 使用下划线忽略返回值，因为我们在 defer 中处理计数
+            _ = await self.state.incrementActive()
+            defer { Task { 
+                let count = await self.state.decrementActive()
+                if count < self.configuration.maxConcurrentRequests {
+                    await self.processQueue()
                 }
-            }
+            }}
+            
+            self.logger.info("Processing request", metadata: [
+                "requestId": .string("\(requestId)"),
+                "message": .string(message.prefix(50).description)
+            ])
             
             let query = ChatQuery(
                 messages: [.init(role: .user, content: message)!],
@@ -110,18 +90,22 @@ public final class TencentHunyuanOpenAIProvider: LLMProvider {
                 throw TencentHunyuanOpenAIError.noResponse
             }
             
-            logger.info("Request completed", metadata: ["requestId": .string("\(requestId)")])
-            return response.string ?? ""
+            let responseString = response.string ?? ""
+            
+            // 添加调试日志，将响应转换为 JSON 格式打印
+            self.logger.debug("[\(name)] LLM response", metadata: [
+                "requestId": .string("\(requestId)"),
+                "response": .string(responseString)
+            ])
+            
+            return responseString
         }
         
-        let activeCount = await counter.getActiveRequestCount()
-        if activeCount >= configuration.maxConcurrentRequests {
-            logger.debug("Max concurrent requests reached, queueing", metadata: ["requestId": .string("\(requestId)")])
+        // 检查当前活跃请求数
+        if await state.currentActive() >= configuration.maxConcurrentRequests {
             let queuedRequest = RequestQueue.QueuedRequest(priority: priority, operation: operation)
             try await requestQueue.enqueue(queuedRequest)
-            
-            Task { await processQueuedRequests() }
-            
+            Task { await processQueue() }
             await semaphore.wait()
         }
         
@@ -130,22 +114,16 @@ public final class TencentHunyuanOpenAIProvider: LLMProvider {
     }
 }
 
+// 简化的异步信号量实现
 private actor AsyncSemaphore {
     private var value: Int
     private var waiters: [CheckedContinuation<Void, Never>] = []
     
-    init(value: Int) {
-        self.value = value
-    }
+    init(value: Int) { self.value = value }
     
     func wait() async {
-        if value > 0 {
-            value -= 1
-            return
-        }
-        await withCheckedContinuation { continuation in
-            waiters.append(continuation)
-        }
+        if value > 0 { value -= 1; return }
+        await withCheckedContinuation { waiters.append($0) }
     }
     
     func signal() {
