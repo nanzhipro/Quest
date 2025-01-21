@@ -1,10 +1,3 @@
-//
-//  Member.swift
-//  Quest
-//
-//  Created by CursorAI on 2024-03-20.
-//
-
 import Fluent
 import JWT
 import Vapor
@@ -82,6 +75,9 @@ final class Member: Model, Content, @unchecked Sendable, Authenticatable {
   @Timestamp(key: "updated_at", on: .update)
   var updatedAt: Date?
 
+  @Field(key: "revenue_cat_user_id")
+  var revenueCatUserId: String?
+
   init() {}
 
   init(
@@ -93,7 +89,8 @@ final class Member: Model, Content, @unchecked Sendable, Authenticatable {
     tierId: UUID,
     points: Int = 0,
     isActive: Bool = true,
-    membershipEndDate: Date? = nil
+    membershipEndDate: Date? = nil,
+    revenueCatUserId: String? = nil
   ) {
     self.id = id
     self.username = username
@@ -104,6 +101,7 @@ final class Member: Model, Content, @unchecked Sendable, Authenticatable {
     self.points = points
     self.isActive = isActive
     self.membershipEndDate = membershipEndDate
+    self.revenueCatUserId = revenueCatUserId
   }
 
   // MARK: - Token Generation
@@ -147,6 +145,12 @@ final class Member: Model, Content, @unchecked Sendable, Authenticatable {
     }
 
     return member
+  }
+
+  // MARK: - Update Subscription Status
+  func updateSubscriptionStatus(with payload: RevenueCatWebhookPayload) {
+    self.isActive = (payload.subscriptionStatus == "active")
+    self.membershipEndDate = payload.expirationDate
   }
 }
 
