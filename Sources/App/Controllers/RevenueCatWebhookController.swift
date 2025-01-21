@@ -29,7 +29,13 @@ struct RevenueCatWebhookController: RouteCollection {
 
     private func verifySignature(_ signature: String, for req: Request) -> Bool {
         // Implement actual signature verification logic here
-        return true
+        // Example logic: compare the signature with a computed HMAC of the request body
+        guard let requestBody = req.body.string else {
+            return false
+        }
+        let secret = "your_revenuecat_secret_key"
+        let computedSignature = HMAC<SHA256>.authenticationCode(for: Data(requestBody.utf8), using: SymmetricKey(data: Data(secret.utf8)))
+        return Data(signature.utf8) == Data(computedSignature)
     }
 
     private func processWebhookData(_ payload: RevenueCatWebhookPayload, on req: Request) async throws {
