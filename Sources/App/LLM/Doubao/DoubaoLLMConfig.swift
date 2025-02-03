@@ -7,6 +7,8 @@
 
 import Foundation
 
+// TODO: 豆包支持了最新版本的 OpenAI 调用方式，Swift OpenAI 还不支持。
+// 所以暂时不支持豆包，详见：https://github.com/MacPaw/OpenAI/issues/221
 public struct DoubaoLLMConfig: LLMProviderConfig {
   public let identifier = "doubao.llm"
   public let apiKey: String
