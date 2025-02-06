@@ -5,7 +5,12 @@
 //  Created by CursorAI on 2024-03-20.
 //
 
+#if canImport(CryptoKit)
 import CryptoKit
+#else
+import Crypto
+#endif
+
 import Foundation
 import Vapor
 
@@ -152,10 +157,19 @@ final class TencentHunyuanSigner: @unchecked Sendable {
     // 1. 计算 secretDate
     let keyData = Data("TC3\(secretKey)".utf8)
     let dateData = Data(date.utf8)
+    
+    #if canImport(CryptoKit)
     var symmetricKey = SymmetricKey(data: keyData)
     let secretDate = HMAC<SHA256>.authenticationCode(for: dateData, using: symmetricKey)
-    let secretDateString = Data(secretDate).map { String(format: "%02hhx", $0) }.joined()
-
+    let secretDateData = Data(secretDate)
+    #else
+    var symmetricKey = SymmetricKey(data: keyData)
+    let secretDate = HMAC<SHA256>.authenticationCode(for: dateData, using: symmetricKey)
+    let secretDateData = Data(secretDate)
+    #endif
+    
+    let secretDateString = secretDateData.map { String(format: "%02hhx", $0) }.joined()
+    
     logger.debug(
       "Calculated secretDate",
       metadata: [
@@ -164,10 +178,19 @@ final class TencentHunyuanSigner: @unchecked Sendable {
 
     // 2. 计算 secretService
     let serviceData = Data(service.utf8)
-    symmetricKey = SymmetricKey(data: Data(secretDate))
+    
+    #if canImport(CryptoKit)
+    symmetricKey = SymmetricKey(data: secretDateData)
     let secretService = HMAC<SHA256>.authenticationCode(for: serviceData, using: symmetricKey)
-    let secretServiceString = Data(secretService).map { String(format: "%02hhx", $0) }.joined()
-
+    let secretServiceData = Data(secretService)
+    #else
+    symmetricKey = SymmetricKey(data: secretDateData)
+    let secretService = HMAC<SHA256>.authenticationCode(for: serviceData, using: symmetricKey)
+    let secretServiceData = Data(secretService)
+    #endif
+    
+    let secretServiceString = secretServiceData.map { String(format: "%02hhx", $0) }.joined()
+    
     logger.debug(
       "Calculated secretService",
       metadata: [
@@ -176,10 +199,19 @@ final class TencentHunyuanSigner: @unchecked Sendable {
 
     // 3. 计算 secretSigning
     let signingData = Data("tc3_request".utf8)
-    symmetricKey = SymmetricKey(data: Data(secretService))
+    
+    #if canImport(CryptoKit)
+    symmetricKey = SymmetricKey(data: secretServiceData)
     let secretSigning = HMAC<SHA256>.authenticationCode(for: signingData, using: symmetricKey)
-    let secretSigningString = Data(secretSigning).map { String(format: "%02hhx", $0) }.joined()
-
+    let secretSigningData = Data(secretSigning)
+    #else
+    symmetricKey = SymmetricKey(data: secretServiceData)
+    let secretSigning = HMAC<SHA256>.authenticationCode(for: signingData, using: symmetricKey)
+    let secretSigningData = Data(secretSigning)
+    #endif
+    
+    let secretSigningString = secretSigningData.map { String(format: "%02hhx", $0) }.joined()
+    
     logger.debug(
       "Calculated secretSigning",
       metadata: [
@@ -188,15 +220,23 @@ final class TencentHunyuanSigner: @unchecked Sendable {
 
     // 4. 计算最终签名
     let stringToSignData = Data(stringToSign.utf8)
-    symmetricKey = SymmetricKey(data: Data(secretSigning))
+    
+    #if canImport(CryptoKit)
+    symmetricKey = SymmetricKey(data: secretSigningData)
     let signature = HMAC<SHA256>.authenticationCode(for: stringToSignData, using: symmetricKey)
       .map { String(format: "%02hhx", $0) }
       .joined()
-
+    #else
+    symmetricKey = SymmetricKey(data: secretSigningData)
+    let signature = HMAC<SHA256>.authenticationCode(for: stringToSignData, using: symmetricKey)
+      .map { String(format: "%02hhx", $0) }
+      .joined()
+    #endif
+    
     logger.debug(
       "Final signature calculated",
       metadata: [
-        "signature": .string("\(signature)")
+        "signature": .string(signature)
       ], source: source)
 
     return signature
@@ -209,12 +249,22 @@ final class TencentHunyuanSigner: @unchecked Sendable {
 
   private func sha256(_ string: String) -> String {
     let data = string.data(using: .utf8)!
+    #if canImport(CryptoKit)
     return SHA256.hash(data: data).compactMap { String(format: "%02hhx", $0) }.joined()
+    #else
+    return SHA256.hash(data: data).compactMap { String(format: "%02hhx", $0) }.joined()
+    #endif
   }
 
   private func hmac(key: Data, data: Data) -> Data {
+    #if canImport(CryptoKit)
     let symmetricKey = SymmetricKey(data: key)
     let signature = HMAC<SHA256>.authenticationCode(for: data, using: symmetricKey)
     return Data(signature)
+    #else
+    let symmetricKey = SymmetricKey(data: key)
+    let signature = HMAC<SHA256>.authenticationCode(for: data, using: symmetricKey)
+    return Data(signature)
+    #endif
   }
 }

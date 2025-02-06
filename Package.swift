@@ -21,10 +21,12 @@ let package = Package(
         .package(url: "https://github.com/vapor/jwt.git", from: "4.0.0"),
         // 🤖 OpenAI SDK
         .package(url: "https://github.com/MacPaw/OpenAI.git", branch: "main"),
+        // 🔑 Swift Crypto
+        .package(url: "https://github.com/apple/swift-crypto.git", "1.0.0" ..< "4.0.0"),
     ],
     targets: [
         .executableTarget(
-            name: "App",
+            name: "App",    
             dependencies: [
                 .product(name: "Vapor", package: "vapor"),
                 .product(name: "Fluent", package: "fluent"),
@@ -33,7 +35,8 @@ let package = Package(
                 .product(name: "NIOCore", package: "swift-nio"),
                 .product(name: "NIOPosix", package: "swift-nio"),
                 .product(name: "JWT", package: "jwt"),
-                .product(name: "OpenAI", package: "OpenAI")
+                .product(name: "OpenAI", package: "OpenAI"),
+                .product(name: "Crypto", package: "swift-crypto"),
             ],
             swiftSettings: [
                 .unsafeFlags(["-cross-module-optimization"], .when(configuration: .release))
