@@ -10,7 +10,7 @@
 #
 #   Build images: docker compose build
 #    Start all: docker compose up -d
-# Start app only: docker compose up -d app nginx
+# Start app only: docker compose up -d app
 #    Start db: docker compose up -d db
 # Run migrations: docker compose run migrate
 #    Stop all: docker compose down (add -v to wipe db)
@@ -39,6 +39,10 @@ services:
     image: quest:latest
     build:
       context: .
+      dockerfile: Dockerfile
+      # 启用 BuildKit 特性
+      args:
+        BUILDKIT_INLINE_CACHE: 1
     environment:
       <<: *shared_environment
     ports:
@@ -46,7 +50,8 @@ services:
     volumes:
       - ${SSL_CERT_DIR:-./Docs/ssl}:/app/certs:ro # 挂载证书目录
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     command:
       [
         "serve",
@@ -60,22 +65,41 @@ services:
       ]
     networks:
       - app-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     healthcheck:
-      test: ["CMD", "curl", "-k", "https://0.0.0.0:443/health"]
-      interval: 10s
+      # 使用 wget 替代 curl，因为 Alpine 基础镜像默认包含 wget
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-check-certificate",
+          "-q",
+          "-O",
+          "-",
+          "https://0.0.0.0:443/health",
+        ]
+      interval: 30s
       timeout: 5s
-      retries: 5
+      retries: 3
       start_period: 40s
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run
 
   # 数据库迁移服务
   migrate:
     image: quest:latest
-    build:
-      context: .
     environment:
       <<: *shared_environment
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     command: ["migrate", "--yes"] # 执行数据库迁移
     deploy:
       replicas: 0 # 默认不部署，仅在需要时手动运行
@@ -85,12 +109,11 @@ services:
   # 数据库回滚服务
   revert:
     image: quest:latest
-    build:
-      context: .
     environment:
       <<: *shared_environment
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     command: ["migrate", "--revert", "--yes"] # 回滚上一次迁移
     deploy:
       replicas: 0 # 默认不部署，仅在需要时手动运行
@@ -111,6 +134,16 @@ services:
       - "5432:5432"
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
 
 # 定义网络配置
 networks:

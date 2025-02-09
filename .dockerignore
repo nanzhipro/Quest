@@ -1,0 +1,15 @@
+.git
+.gitignore
+.DS_Store
+.build
+.swiftpm
+*.xcodeproj
+*.xcworkspace
+DerivedData/
+.env
+.env.*
+*.pem
+*.key
+*.crt
+node_modules
+*.log 
