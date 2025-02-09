@@ -48,6 +48,7 @@ services:
       - "443:443"
     volumes:
       - ${SSL_CERT_DIR:-./Docs/ssl}:/app/certs:ro
+      - ./.env:/app/.env:ro
     depends_on:
       db:
         condition: service_healthy
