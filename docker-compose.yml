@@ -15,7 +15,6 @@
 # Run migrations: docker compose run migrate
 #    Stop all: docker compose down (add -v to wipe db)
 #
-version: "3.7"
 
 # 定义持久化存储卷
 volumes:
