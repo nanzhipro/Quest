@@ -29,6 +29,9 @@ x-shared_environment: &shared_environment
   DATABASE_NAME: ${VAPOR_DATABASE_NAME}
   DATABASE_USERNAME: ${VAPOR_DATABASE_USERNAME}
   DATABASE_PASSWORD: ${VAPOR_DATABASE_PASSWORD}
+  # 添加 TLS 相关环境变量
+  TLS_CERT_PATH: ${TLS_CERT_PATH:-/app/certs/cert.pem}
+  TLS_KEY_PATH: ${TLS_KEY_PATH:-/app/certs/key.pem}
 
 services:
   # Vapor应用服务
@@ -38,6 +41,10 @@ services:
       context: .
     environment:
       <<: *shared_environment
+    ports:
+      - "443:443" # 暴露 HTTPS 端口
+    volumes:
+      - ${SSL_CERT_DIR:-./Docs/ssl}:/app/certs:ro # 挂载证书目录
     depends_on:
       - db
     command:
@@ -48,40 +55,17 @@ services:
         "--hostname",
         "0.0.0.0",
         "--port",
-        "8080",
+        "443",
+        "--tls",
       ]
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://0.0.0.0:8080/health"]
+      test: ["CMD", "curl", "-k", "https://0.0.0.0:443/health"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 40s
-
-  # Nginx反向代理服务
-  nginx:
-    image: nginx:alpine # 使用官方nginx镜像的alpine版本
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Docs/nginxconfig.io-tiwenlab.com/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./Docs/nginxconfig.io-tiwenlab.com/conf.d:/etc/nginx/conf.d:ro
-      - ${SSL_CERT_DIR:-./Docs/ssl}:/etc/nginx/ssl:ro # 提供默认值
-      - ./Public:/var/www/tiwenlab.com/public:ro
-    depends_on:
-      app:
-        condition: service_healthy # 添加健康检查依赖
-    networks:
-      - app-network
-    restart: unless-stopped # 添加重启策略
-    healthcheck: # 添加健康检查
-      test: ["CMD", "nginx", "-t"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
 
   # 数据库迁移服务
   migrate:

@@ -60,10 +60,7 @@ RUN export DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true \
   ca-certificates \
   tzdata \
   curl \
-  # If your app or its dependencies import FoundationNetworking, also install `libcurl4`.
-  # libcurl4 \
-  # If your app or its dependencies import FoundationXML, also install `libxml2`.
-  # libxml2 \
+  openssl \
   && rm -r /var/lib/apt/lists/*
 
 # Create a vapor user and group with /app as its home directory
@@ -78,15 +75,18 @@ COPY --from=build --chown=vapor:vapor /staging /app
 # Provide configuration needed by the built-in crash reporter and some sensible default behaviors.
 ENV SWIFT_BACKTRACE=enable=yes,sanitize=yes,threads=all,images=all,interactive=no,swift-backtrace=./swift-backtrace-static
 
+# Create certificate directory
+RUN mkdir -p /app/certs && chown vapor:vapor /app/certs
+
 # Ensure all further commands run as the vapor user
 USER vapor:vapor
 
-# Let Docker bind to port 8080
-EXPOSE 8080
+# Let Docker bind to port 443
+EXPOSE 443
 
-# Start the Vapor service when the image is run, default to listening on 8080 in production environment
+# Start the Vapor service when the image is run, default to listening on 443 in production environment
 ENTRYPOINT ["./App"]
-CMD ["serve", "--env", "production", "--hostname", "0.0.0.0", "--port", "8080"]
+CMD ["serve", "--env", "production", "--hostname", "0.0.0.0", "--port", "443", "--tls"]
 # # 在 Dockerfile 中添加 curl 安装
 # RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 

@@ -82,7 +82,33 @@ public func configure(_ app: Application) async throws {
       try await app.autoMigrate().get()
   }
 
+  // 配置 TLS
+  try configureTLS(app)
+
   // register routes
   try routes(app)
   try app.register(collection: PromptController(promptService: DatabasePromptService(db: app.db)))
+}
+
+private func configureTLS(_ app: Application) throws {
+  let certPath = Environment.get("TLS_CERT_PATH") ?? "/app/certs/cert.pem"
+  let keyPath = Environment.get("TLS_KEY_PATH") ?? "/app/certs/key.pem"
+  
+  app.logger.info("Loading TLS certificates",
+                  metadata: ["certPath": .string(certPath),
+                           "keyPath": .string(keyPath)])
+  
+  let cert = try NIOSSLCertificate.fromPEMFile(certPath)
+  let key = try NIOSSLPrivateKey.fromPEMFile(keyPath)
+  
+  app.http.server.configuration = .init(
+      hostname: "0.0.0.0",
+      port: 443,
+      tlsConfiguration: .makeServerConfiguration(
+          certificateChain: cert.map { .certificate($0) },
+          privateKey: .privateKey(key)
+      )
+  )
+  
+  app.logger.info("TLS configuration completed successfully")
 }
