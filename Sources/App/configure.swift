@@ -91,24 +91,72 @@ public func configure(_ app: Application) async throws {
 }
 
 private func configureTLS(_ app: Application) throws {
-  let certPath = Environment.get("TLS_CERT_PATH") ?? "/app/certs/cert.pem"
-  let keyPath = Environment.get("TLS_KEY_PATH") ?? "/app/certs/key.pem"
-  
-  app.logger.info("Loading TLS certificates",
-                  metadata: ["certPath": .string(certPath),
-                           "keyPath": .string(keyPath)])
-  
-  let cert = try NIOSSLCertificate.fromPEMFile(certPath)
-  let key = try NIOSSLPrivateKey.fromPEMFile(keyPath)
-  
-  app.http.server.configuration = .init(
-      hostname: "0.0.0.0",
-      port: 443,
-      tlsConfiguration: .makeServerConfiguration(
-          certificateChain: cert.map { .certificate($0) },
-          privateKey: .privateKey(key)
-      )
-  )
-  
-  app.logger.info("TLS configuration completed successfully")
+    let certPath = Environment.get("TLS_CERT_PATH") ?? "/app/certs/cert.pem"
+    let keyPath = Environment.get("TLS_KEY_PATH") ?? "/app/certs/key.pem"
+    
+    do {
+        app.logger.info("Attempting to load TLS certificates",
+                      metadata: ["certPath": .string(certPath),
+                               "keyPath": .string(keyPath)])
+        
+        let cert = try NIOSSLCertificate(file: certPath, format: .pem)
+        let key = try NIOSSLPrivateKey(file: keyPath, format: .pem)
+        
+        // 配置 TLS
+        var tlsConfig = TLSConfiguration.makeServerConfiguration(
+            certificateChain: [.certificate(cert)],
+            privateKey: .privateKey(key)
+        )
+        
+        // 设置 TLS 安全选项
+        tlsConfig.minimumTLSVersion = .tlsv12           // 最低使用 TLS 1.2
+        tlsConfig.maximumTLSVersion = .tlsv13           // 最高支持 TLS 1.3
+        tlsConfig.certificateVerification = .none       // 服务端模式不验证客户端证书
+        
+        // 配置 HTTPS 服务器
+        app.http.server.configuration = .init(
+            hostname: "0.0.0.0",
+            port: 443,
+            backlog: 256,                               // 连接队列大小
+            reuseAddress: true,                         // 允许端口重用
+            tcpNoDelay: true,                           // 优化 TCP 延迟
+            supportVersions: [.one, .two],              // 同时支持 HTTP/1.x 和 HTTP/2
+            tlsConfiguration: tlsConfig
+        )
+        
+        app.logger.info("TLS configuration completed successfully", metadata: [
+            "port": .string("443"),
+            "http_versions": .string("HTTP/1.x, HTTP/2"),
+            "tls_version": .string("1.2-1.3")
+        ])
+        
+    } catch let error as NIOSSLError {
+        // 处理 SSL 相关错误
+        app.logger.warning("SSL configuration error: \(error). Falling back to HTTP", metadata: [
+            "error_type": .string("\(type(of: error))"),
+            "error_description": .string(error.localizedDescription)
+        ])
+        fallbackToHTTP(app)
+    } catch {
+        // 处理其他错误
+        app.logger.warning("Failed to load TLS certificates: \(error). Falling back to HTTP")
+        fallbackToHTTP(app)
+    }
+}
+
+/// 降级到 HTTP 服务
+private func fallbackToHTTP(_ app: Application) {
+    app.http.server.configuration = .init(
+        hostname: "0.0.0.0",
+        port: 8080,
+        backlog: 256,
+        reuseAddress: true,
+        tcpNoDelay: true,
+        supportVersions: [.one]  // HTTP 模式仅支持 HTTP/1.x
+    )
+    
+    app.logger.info("HTTP server configured", metadata: [
+        "port": .string("8080"),
+        "http_version": .string("HTTP/1.x")
+    ])
 }
