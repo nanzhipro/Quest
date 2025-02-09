@@ -40,29 +40,19 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      # 启用 BuildKit 特性
       args:
         BUILDKIT_INLINE_CACHE: 1
     environment:
       <<: *shared_environment
     ports:
-      - "443:443" # 暴露 HTTPS 端口
+      - "443:443"
     volumes:
-      - ${SSL_CERT_DIR:-./Docs/ssl}:/app/certs:ro # 挂载证书目录
+      - ${SSL_CERT_DIR:-./Docs/ssl}:/app/certs:ro
     depends_on:
       db:
         condition: service_healthy
     command:
-      [
-        "serve",
-        "--env",
-        "production",
-        "--hostname",
-        "0.0.0.0",
-        "--port",
-        "443",
-        "--tls",
-      ]
+      ["serve", "--env", "production", "--hostname", "0.0.0.0", "--port", "443"]
     networks:
       - app-network
     deploy:
