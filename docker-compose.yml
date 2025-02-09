@@ -81,6 +81,8 @@ services:
     tmpfs:
       - /tmp
       - /var/run
+    env_file:
+      - .env
 
   # 数据库迁移服务
   migrate:
