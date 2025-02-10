@@ -138,3 +138,18 @@ app-1 | [ INFO ] GET /cloud-config.yml [request-id: 34A02005-CC2F-42F3-8872-7379
 app-1 | [ DEBUG ] RouteNotFound.404: Not Found [method: GET, request-id: 34A02005-CC2F-42F3-8872-737938B064CA, url: /cloud-config.yml, userAgent: [Go-http-client/1.1]] (Vapor/ErrorMiddleware.swift:29)
 app-1 | [ INFO ] GET /.svn/wc.db [request-id: 903F8E43-2C25-46D0-BD69-A240A6ED009C] (Vapor/RouteLoggingMiddleware.swift:14)
 app-1 | [ DEBUG ] RouteNotFound.404: Not Found [method: GET, request-id: 903F8E43-2C25-46D0-BD69-A240A6ED009C, url: /.svn/wc.db, userAgent: [Go-http-client/1.1]] (Vapor/ErrorMiddleware.swift:29)
+
+# JWT 认证最佳实践
+
+- 通过自定义中间件与 Vapor 内置的 JWT 机制，实现 API 认证拦截。
+- 使用 HS256 等可靠的签名算法验证 JWT，有效防止伪造。
+- 密钥应安全存储，生产环境中建议通过环境变量或安全的密钥管理服务配置，避免硬编码。
+- JWT 中需包含过期时间 (exp) 以限制 token 的有效期，校验时务必调用 verifyNotExpired() 方法。
+- 考虑生产环境下的密钥轮换策略及失败日志记录，提升系统的安全性和可观测性。
+
+## JWT 认证安全日志注意事项
+
+- 切勿在日志中记录完整的 JWT token
+- 避免记录用户敏感信息
+- 记录认证失败的具体原因，但不暴露系统实现细节
+- 考虑记录可疑的认证模式用于安全分析

@@ -57,6 +57,9 @@ public func configure(_ app: Application) async throws {
   // 配置 JWT
   app.jwt.signers.use(.hs256(key: AppEnvironment.jwtSecret))
 
+  // 全局注册 JWT 中间件，确保所有请求在进入路由前均需经过 JWT 验证
+  app.middleware.use(AuthJWTMiddleware())
+
   // 配置 LLM 服务
   do {
     // 从环境变量或配置中获取要使用的 LLM 提供者
