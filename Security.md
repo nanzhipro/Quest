@@ -153,3 +153,8 @@ app-1 | [ DEBUG ] RouteNotFound.404: Not Found [method: GET, request-id: 903F8E4
 - 避免记录用户敏感信息
 - 记录认证失败的具体原因，但不暴露系统实现细节
 - 考虑记录可疑的认证模式用于安全分析
+
+## JWT 中间件排除路径
+- `/api/get_jwt_token` 路径被排除在 JWT 验证之外
+- 请确保被排除的路径有其他适当的安全措施（如 API 限流、IP 白名单等）
+- 定期审查排除路径列表，确保安全性

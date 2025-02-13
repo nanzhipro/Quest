@@ -9,9 +9,20 @@ import Vapor
 import JWT
 
 struct AuthJWTMiddleware: Middleware {
+    // 定义需要排除的路径
+    private static let excludedPaths: Set<String> = [
+        "/api/get_jwt_token"
+    ]
+    
     func respond(to request: Request, chainingTo next: Responder) -> EventLoopFuture<Response> {
         let logger = request.logger
         logger.info("Starting JWT authentication for request")
+        
+        // 检查当前路径是否在排除列表中
+        if Self.excludedPaths.contains(request.url.path) {
+            logger.info("Skipping JWT verification for excluded path: \(request.url.path)")
+            return next.respond(to: request)
+        }
         
         // 从请求头中提取 Authorization 字段
         guard let authHeader = request.headers.first(name: .authorization),

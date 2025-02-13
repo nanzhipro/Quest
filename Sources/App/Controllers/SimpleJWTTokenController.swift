@@ -1,6 +1,6 @@
 //
 //  SimpleJWTTokenController.swift
-//  VaporProject
+//  Quest
 //
 //  Created by CursorAI on 2023-10-04.
 //
@@ -29,7 +29,7 @@ struct ClientPayload: JWTPayload {
     }
 }
 
-// SimpleJWTTokenController 实现了 RouteCollection，用于注册 /api/token 路由
+// SimpleJWTTokenController 实现了 RouteCollection，用于注册 /api/get_jwt_token 路由
 struct SimpleJWTTokenController: RouteCollection {
     // 硬编码的客户端凭据
     private let validClientId = "QuestService"
@@ -40,27 +40,56 @@ struct SimpleJWTTokenController: RouteCollection {
         api.post("get_jwt_token", use: tokenHandler)
     }
     
-    // 处理 /api/token 请求的路由函数
-    func tokenHandler(req: Request) throws -> EventLoopFuture<TokenResponse> {
+    // 处理 /api/get_jwt_token 请求的路由函数
+    func tokenHandler(req: Request) throws -> EventLoopFuture<JWTTokenResponse> {
+        let logger = req.logger
+        logger.info("Processing JWT token request", metadata: [
+            "request_id": .string(req.id ?? "unknown"),
+            "client_ip": .string(req.remoteAddress?.hostname ?? "unknown")
+        ])
+        
         // 解码请求体中的客户端凭据
-        let tokenRequest = try req.content.decode(TokenRequest.self)
+        let tokenRequest = try req.content.decode(JWTTokenRequest.self)
         
         // 校验凭据是否正确
         guard tokenRequest.client_id == validClientId,
               tokenRequest.client_secret == validClientSecret else {
+            logger.warning("Invalid client credentials attempt", metadata: [
+                "request_id": .string(req.id ?? "unknown"),
+                "client_id": .string(tokenRequest.client_id),
+                "client_ip": .string(req.remoteAddress?.hostname ?? "unknown")
+            ])
             throw Abort(.unauthorized, reason: "无效的客户端凭据")
         }
+        
+        logger.debug("Client credentials validated successfully", metadata: [
+            "request_id": .string(req.id ?? "unknown"),
+            "client_id": .string(tokenRequest.client_id)
+        ])
         
         // 设置 Token 的有效期（这里设定为 1 小时）
         let expirationTime = Date().addingTimeInterval(3600)
         // 构造统一的 AuthPayload，此处设置 sub 为 QuestService
         let payload = AuthPayload(sub: SubjectClaim(value: "QuestService"),
-                                  exp: ExpirationClaim(value: expirationTime))
+                                exp: ExpirationClaim(value: expirationTime))
         do {
             // 使用全局配置的 JWT 签名器生成 token
             let token = try req.jwt.sign(payload)
-            return req.eventLoop.makeSucceededFuture(TokenResponse(token: token))
+            
+            logger.info("JWT token generated successfully", metadata: [
+                "request_id": .string(req.id ?? "unknown"),
+                "client_id": .string(tokenRequest.client_id),
+                "expiration": .string("\(expirationTime.timeIntervalSince1970)"),
+                "token_length": .string("\(token.count)")
+            ])
+            
+            return req.eventLoop.makeSucceededFuture(JWTTokenResponse(token: token))
         } catch {
+            logger.error("Failed to generate JWT token", metadata: [
+                "request_id": .string(req.id ?? "unknown"),
+                "client_id": .string(tokenRequest.client_id),
+                "error": .string(error.localizedDescription)
+            ])
             return req.eventLoop.makeFailedFuture(error)
         }
     }

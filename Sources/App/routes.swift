@@ -16,8 +16,8 @@ func routes(_ app: Application) throws {
   // 注册其他 API 控制器
   try api.register(collection: MemberController())
 
-  // 注册 TokenController，提供 /api/token 接口
-  try app.register(collection: TokenController())
+  // 注册 TokenController，提供 /api/get_jwt_token 接口
+  try app.register(collection: SimpleJWTTokenController())
 
   app.get("health") { req -> String in
     return "healthy"
