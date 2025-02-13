@@ -1,5 +1,5 @@
 //
-//  TokenController.swift
+//  SimpleJWTTokenController.swift
 //  VaporProject
 //
 //  Created by CursorAI on 2023-10-04.
@@ -9,13 +9,13 @@ import Vapor
 import JWT
 
 // 用于解析客户端请求体中携带的凭据数据
-struct TokenRequest: Content {
+struct JWTTokenRequest: Content {
     let client_id: String
     let client_secret: String
 }
 
 // 用于返回生成的 JWT token
-struct TokenResponse: Content {
+struct JWTTokenResponse: Content {
     let token: String
 }
 
@@ -29,15 +29,15 @@ struct ClientPayload: JWTPayload {
     }
 }
 
-// TokenController 实现了 RouteCollection，用于注册 /api/token 路由
-struct TokenController: RouteCollection {
+// SimpleJWTTokenController 实现了 RouteCollection，用于注册 /api/token 路由
+struct SimpleJWTTokenController: RouteCollection {
     // 硬编码的客户端凭据
     private let validClientId = "QuestService"
     private let validClientSecret = "QuestSecret"
     
     func boot(routes: RoutesBuilder) throws {
         let api = routes.grouped("api")
-        api.post("token", use: tokenHandler)
+        api.post("get_jwt_token", use: tokenHandler)
     }
     
     // 处理 /api/token 请求的路由函数
