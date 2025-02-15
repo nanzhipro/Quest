@@ -15,7 +15,16 @@ struct LLMController {
   }
   
   private func chat(_ req: Request) async throws -> LLMResponse {
+    // log request
+    req.logger.info("Received chat request", metadata: [
+      "request": .string(req.body.string ?? "No request body")
+    ])
+
     let request = try req.content.decode(LLMRequest.self)
+
+    req.logger.info("Decoded request", metadata: [
+      "request": .string(request.messages.map { $0.content }.joined(separator: "\n"))
+    ])
     
     guard !request.messages.isEmpty else {
       req.logger.warning("Empty messages received")
