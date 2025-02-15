@@ -13,6 +13,7 @@
 [USER_CONTEXT]
 
 **字段定义：**
+
 1. **title**（活动名称/标题）
 2. **location**（活动地点）
 3. **notes**（活动备注/说明）
@@ -39,6 +40,7 @@
 }
 
 **要求：**
+
 1. **字段提取**：从文本中提取上述所有字段的信息。如果某个字段在文本中不存在或无法确定，字段可填空。
 2. **UUID 生成**：为每个事件生成一个唯一的 `eventIdentifier`（UUID 格式），可以直接生成后填充。
 3. **数据格式**：
@@ -63,9 +65,9 @@
   "title": "年度会议",
   "location": "上海会议中心",
   "notes": "讨论公司年度业绩及未来规划。",
-  "startDate": "2025-05-20 09:00:00",
-  "endDate": "2025-05-20 17:00:00",
-  "url": "https://www.example.com/meeting",
+  "startDate": "2024-05-20 09:00:00",
+  "endDate": "2024-05-20 17:00:00",
+  "url": "<https://www.example.com/meeting>",
   "calendar": "公司日历",
   "status": "已发布",
   "eventIdentifier": "123e4567-e89b-12d3-a456-426614174000",
