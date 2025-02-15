@@ -111,7 +111,7 @@ psql -U postgres            # 连接默认数据库
 SELECT * FROM prompts;      # 查看数据
 
 ## 方法 2: 从宿主机直接连接（需本地有 psql 客户端）
-psql -h localhost -p 5432 -U postgres -d postgres
+psql -h localhost -p 5432 -U yourusername -d yourdatabase
 # 密码可能在 docker-compose.yml 中设置，检查 POSTGRES_PASSWORD 环境变量
 
 ## 快速验证表是否存在（不进入交互模式）:
@@ -131,3 +131,9 @@ docker compose exec app ls -l /app/Resources/Prompts/default.md
 
 # 如果需要调整权限
 docker compose exec app chmod 644 /app/Resources/Prompts/default.md
+
+## 数据库迁移操作
+- 使用`pg_dump`备份表数据
+- 使用`--revert`选项回滚迁移
+- 使用`--yes`选项自动确认操作
+- 生产环境建议在维护窗口执行
