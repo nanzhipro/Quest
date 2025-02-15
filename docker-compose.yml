@@ -48,7 +48,7 @@ services:
     volumes:
       - ${SSL_CERT_DIR:-./Docs/ssl}:/app/certs:ro
       - ./.env:/app/.env:ro
-      - ./Resources/Prompts:/app/Resources/Prompts:ro
+      - ./Resources/Prompts:/app/Resources/Prompts:rw
     depends_on:
       db:
         condition: service_healthy
