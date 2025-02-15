@@ -93,3 +93,41 @@
 - 包含必要的上下文信息（如用户ID）
 - 避免记录敏感信息
 - 使用结构化日志便于后续分析
+
+## PostgreSQL 客户端安装
+- Ubuntu 系统使用 `postgresql-client` 包
+- 建议安装与数据库版本匹配的客户端
+- 容器内工具可作为替代方案
+
+# 数据库调试技巧
+
+## 方法 1: 直接进入数据库容器执行 psql
+docker compose exec db sh   # 进入容器shell
+psql -U postgres            # 连接默认数据库
+
+## 在 psql 终端中执行:
+\c your_database_name       # 切换数据库（默认可能为 postgres）
+\d prompts                 # 查看表结构
+SELECT * FROM prompts;      # 查看数据
+
+## 方法 2: 从宿主机直接连接（需本地有 psql 客户端）
+psql -h localhost -p 5432 -U postgres -d postgres
+# 密码可能在 docker-compose.yml 中设置，检查 POSTGRES_PASSWORD 环境变量
+
+## 快速验证表是否存在（不进入交互模式）:
+docker compose exec db psql -U postgres -c '\d prompts'
+
+# 文件管理技巧
+- 使用`docker compose cp`在宿主机和容器间拷贝文件
+- 重要文件建议使用volume持久化存储
+- 定期清理容器内临时文件
+- 使用`chmod`调整文件权限
+
+# 拷贝文件到容器内
+docker compose cp Resources/Prompts/default.md app:/app/Resources/Prompts/default.md
+
+# 验证文件是否成功复制
+docker compose exec app ls -l /app/Resources/Prompts/default.md
+
+# 如果需要调整权限
+docker compose exec app chmod 644 /app/Resources/Prompts/default.md

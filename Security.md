@@ -158,3 +158,9 @@ app-1 | [ DEBUG ] RouteNotFound.404: Not Found [method: GET, request-id: 903F8E4
 - `/api/get_jwt_token` 路径被排除在 JWT 验证之外
 - 请确保被排除的路径有其他适当的安全措施（如 API 限流、IP 白名单等）
 - 定期审查排除路径列表，确保安全性
+
+## 容器安全实践
+- 使用`read_only: true`增强容器安全性
+- 通过volume挂载实现必要的文件操作
+- 敏感文件挂载为只读
+- 使用tmpfs处理临时文件
