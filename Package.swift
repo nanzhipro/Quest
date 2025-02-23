@@ -6,6 +6,12 @@ let package = Package(
     platforms: [
        .macOS(.v13)
     ],
+    products: [
+        .executable(
+            name: "revenuecat-sign",
+            targets: ["RevenueCatSignatureCLI"]
+        ),
+    ],
     dependencies: [
         // 💧 A server-side Swift web framework.
         .package(url: "https://github.com/vapor/vapor.git", from: "4.99.3"),
@@ -41,6 +47,10 @@ let package = Package(
             swiftSettings: [
                 .unsafeFlags(["-cross-module-optimization"], .when(configuration: .release))
             ]
+        ),
+        .executableTarget(
+            name: "RevenueCatSignatureCLI",
+            dependencies: []
         ),
         .testTarget(
             name: "AppTests",

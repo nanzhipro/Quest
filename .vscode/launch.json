@@ -17,6 +17,24 @@
       "name": "Release App",
       "program": "${workspaceFolder:Quest}/.build/release/App",
       "preLaunchTask": "swift: Build Release App"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:Quest}",
+      "name": "Debug revenuecat-sign",
+      "program": "${workspaceFolder:Quest}/.build/debug/revenuecat-sign",
+      "preLaunchTask": "swift: Build Debug revenuecat-sign"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:Quest}",
+      "name": "Release revenuecat-sign",
+      "program": "${workspaceFolder:Quest}/.build/release/revenuecat-sign",
+      "preLaunchTask": "swift: Build Release revenuecat-sign"
     }
   ]
 }

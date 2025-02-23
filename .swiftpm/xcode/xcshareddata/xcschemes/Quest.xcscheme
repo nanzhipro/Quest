@@ -100,7 +100,7 @@
          </EnvironmentVariable>
          <EnvironmentVariable
             key = "REVENUECAT_WEBHOOK_SECRET"
-            value = "your_webhook_secret_here"
+            value = "sk_yXYKnlpDHFFUYVggzBGZClOLmAlwu"
             isEnabled = "YES">
          </EnvironmentVariable>
       </EnvironmentVariables>

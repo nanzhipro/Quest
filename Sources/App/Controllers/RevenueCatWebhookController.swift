@@ -21,67 +21,62 @@ struct RevenueCatWebhookController: RouteCollection {
     }
     
     func handleWebhook(req: Request) async throws -> HTTPStatus {
-        // 1. 获取并验证签名
-        guard let signatureHeader = req.headers.first(name: "x-revenuecat-signature") else {
+        // 1. 获取签名
+        guard let signatureHeader = req.headers.first(name: "X-RevenueCat-Signature") else {
             req.logger.warning("Missing RevenueCat signature header")
-            throw Abort(.unauthorized)
+            throw Abort(.unauthorized, reason: "Missing signature header")
         }
         
         guard let webhookSecret = Environment.get("REVENUECAT_WEBHOOK_SECRET") else {
             req.logger.error("RevenueCat webhook secret not configured")
-            throw Abort(.internalServerError)
+            throw Abort(.internalServerError, reason: "Webhook secret not configured")
         }
         
         // 2. 获取原始请求体
-        let body = try await req.body.collect(max: 1024 * 1024).get() // 1MB limit
-        guard var bodyBuffer = body else {
+        let rawBody = try await req.body.collect(max: 1024 * 1024).get()
+        guard let bodyBuffer = rawBody else {
             throw Abort(.badRequest, reason: "Missing request body")
         }
         
-        let bodyString = bodyBuffer.readString(length: bodyBuffer.readableBytes) ?? ""
+        // 3. 获取原始请求体字符串，保持原始格式
+        guard let rawBodyString = bodyBuffer.getString(at: 0, length: bodyBuffer.readableBytes) else {
+            throw Abort(.badRequest, reason: "Invalid request body")
+        }
         
-        // 3. 验证签名
+        // 4. 计算签名
         let secretData = Data(webhookSecret.utf8)
-        let messageData = Data(bodyString.utf8)
+        let messageData = Data(rawBodyString.utf8)
         
         #if canImport(CryptoKit)
         let hmac = HMAC<SHA256>.authenticationCode(for: messageData, using: SymmetricKey(data: secretData))
-        let computedSignature = hmac.map { String(format: "%02x", $0) }.joined()
+        let computedSignature = Data(hmac).map { String(format: "%02x", $0) }.joined()
         #else
         let hmac = HMAC<SHA256>.authenticationCode(for: messageData, using: SymmetricKey(data: secretData))
-        let computedSignature = hmac.map { String(format: "%02x", $0) }.joined()
+        let computedSignature = Data(hmac).map { String(format: "%02x", $0) }.joined()
         #endif
         
+        // 5. 验证签名
         guard computedSignature == signatureHeader else {
-            req.logger.warning("Invalid RevenueCat signature")
-            throw Abort(.unauthorized)
+            req.logger.warning("Invalid RevenueCat signature", metadata: [
+                "computed": .string(computedSignature),
+                "received": .string(signatureHeader)
+            ])
+            throw Abort(.unauthorized, reason: "Invalid signature")
         }
         
-        // 4. 解析事件
-        bodyBuffer.moveReaderIndex(to: 0)
-        let event = try JSONDecoder().decode(RevenueCatWebhookEvent.self, from: bodyBuffer)
-        
-        // 5. 检查是否已处理过该事件
-        if try await EventLog.query(on: req.db)
-            .filter(\.$event_id, .equal, event.event.event_id)
-            .first() != nil {
-            req.logger.info("Event already processed: \(event.event.event_id)")
-            return .ok
+        // 6. 解析事件
+        let event: RevenueCatWebhookEvent
+        do {
+            event = try JSONDecoder().decode(RevenueCatWebhookEvent.self, from: bodyBuffer)
+        } catch {
+            req.logger.error("Failed to decode webhook event: \(error)")
+            throw Abort(.badRequest, reason: "Invalid webhook payload")
         }
         
-        // 6. 处理事件
+        // 7. 处理事件
         do {
             try await handleEvent(event, on: req)
-            
-            // 7. 记录事件
-            let eventLog = EventLog(
-                event_id: event.event.event_id,
-                event_type: event.event.type,
-                app_user_id: event.event.app_user_id
-            )
-            try await eventLog.create(on: req.db)
-            
-            req.logger.info("Successfully processed RevenueCat event: \(event.event.event_id)")
+            req.logger.info("Successfully processed RevenueCat event: \(event.event.id)")
             return .ok
             
         } catch {

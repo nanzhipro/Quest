@@ -79,6 +79,7 @@ public func configure(_ app: Application) async throws {
   // 注释掉数据库迁移，使用内存存储进行测试
   app.migrations.add(CreatePrompt())
   app.migrations.add(CreateInitialPrompt())
+  app.migrations.add(CreateUserSubscription())
 
   // 添加自动迁移（仅限开发环境）
   if app.environment == .development {
@@ -87,9 +88,6 @@ public func configure(_ app: Application) async throws {
 
   // 配置 TLS
   try configureTLS(app)
-
-  // 添加 EventLog 迁移
-  app.migrations.add(CreateEventLog())
 
   // 添加用户订阅迁移
   app.migrations.add(CreateUserSubscription())
