@@ -18,14 +18,14 @@ enum SubscriptionStatus: String, Codable {
 }
 
 // 用户订阅模型
-final class UserSubscription: Model, Content {
+final class UserSubscription: Model, Content, Sendable {
     static let schema = "user_subscriptions"
     
     @ID(key: .id)
     var id: UUID?
     
     @Field(key: "app_user_id")
-    var app_user_id: String
+    private(set) var app_user_id: String
     
     @Field(key: "product_id")
     var product_id: String

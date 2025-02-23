@@ -50,7 +50,9 @@ let package = Package(
         ),
         .executableTarget(
             name: "RevenueCatSignatureCLI",
-            dependencies: []
+            dependencies: [
+                .product(name: "Crypto", package: "swift-crypto"),
+            ]
         ),
         .testTarget(
             name: "AppTests",

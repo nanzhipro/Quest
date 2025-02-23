@@ -22,8 +22,10 @@ enum RevenueCatSignatureGenerator {
         let hmac = HMAC<SHA256>.authenticationCode(for: messageData, using: SymmetricKey(data: secretData))
         return Data(hmac).map { String(format: "%02x", $0) }.joined()
         #else
-        let hmac = HMAC<SHA256>.authenticationCode(for: messageData, using: SymmetricKey(data: secretData))
-        return Data(hmac).map { String(format: "%02x", $0) }.joined()
+        let key = SymmetricKey(data: secretData)
+        let hmac = HMAC<SHA256>.authenticationCode(for: messageData, using: key)
+        let hmacData = Data(hmac)
+        return hmacData.map { String(format: "%02x", $0) }.joined()
         #endif
     }
     

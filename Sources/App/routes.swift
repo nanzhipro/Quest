@@ -11,7 +11,7 @@ func routes(_ app: Application) throws {
   }
 
   // API 路由组
-  let api = app.grouped("api", "v1")
+  _ = app.grouped("api", "v1")
 
   // 注册 TokenController，提供 /api/get_jwt_token 接口
   try app.register(collection: SimpleJWTTokenController())
