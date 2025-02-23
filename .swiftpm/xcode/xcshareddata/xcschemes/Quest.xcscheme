@@ -98,6 +98,11 @@
             value = "sk-02f46793ddae48eaaab25c5f367beb93"
             isEnabled = "YES">
          </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "REVENUECAT_WEBHOOK_SECRET"
+            value = "your_webhook_secret_here"
+            isEnabled = "YES">
+         </EnvironmentVariable>
       </EnvironmentVariables>
    </LaunchAction>
    <ProfileAction

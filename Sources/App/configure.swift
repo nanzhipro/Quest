@@ -88,6 +88,12 @@ public func configure(_ app: Application) async throws {
   // 配置 TLS
   try configureTLS(app)
 
+  // 添加 EventLog 迁移
+  app.migrations.add(CreateEventLog())
+
+  // 添加用户订阅迁移
+  app.migrations.add(CreateUserSubscription())
+
   // register routes
   try routes(app)
   try app.register(collection: PromptController(promptService: DatabasePromptService(db: app.db)))

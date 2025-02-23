@@ -11,7 +11,8 @@ import JWT
 struct AuthJWTMiddleware: Middleware {
     // 定义需要排除的路径
     private static let excludedPaths: Set<String> = [
-        "/api/get_jwt_token"
+        "/api/get_jwt_token",
+        "/webhooks/revenuecat"
     ]
     
     func respond(to request: Request, chainingTo next: Responder) -> EventLoopFuture<Response> {

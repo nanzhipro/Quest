@@ -19,6 +19,9 @@ func routes(_ app: Application) throws {
   // 注册 TokenController，提供 /api/get_jwt_token 接口
   try app.register(collection: SimpleJWTTokenController())
 
+  // 注册 RevenueCat Webhook 控制器
+  try app.register(collection: RevenueCatWebhookController())
+
   app.get("health") { req -> String in
     return "healthy"
   }
