@@ -86,6 +86,7 @@ services:
       - /var/run
     env_file:
       - .env
+    user: "vapor:vapor" # 或使用 UID:GID
 
   # 数据库迁移服务
   migrate:
