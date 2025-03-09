@@ -10,11 +10,11 @@ import Foundation
 import Vapor
 
 // # 确保文件存在
-// docker compose run --rm app ls -l /app/Resources/Prompts/default.txt
+// docker compose run --rm app ls -l /app/Resources/Prompts/default.md
 
 // # 如果需要修改 Prompt
 // docker compose down
-// nano Resources/Prompts/default.txt
+// nano Resources/Prompts/default.md
 // docker compose up -d
 // docker compose run migrate
 
@@ -30,7 +30,7 @@ struct CreatePrompt: AsyncMigration {
             .create()
 
         // 读取默认 Prompt 内容
-        let promptPath = Environment.get("DEFAULT_PROMPT_PATH") ?? "./Resources/Prompts/default.txt"
+        let promptPath = Environment.get("DEFAULT_PROMPT_PATH") ?? "./Resources/Prompts/default.md"
         let version = Int(Environment.get("DEFAULT_PROMPT_VERSION") ?? "1") ?? 1
         
         do {

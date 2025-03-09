@@ -29,10 +29,31 @@ docker compose exec app cat /app/.env
 # 进入app容器内部
 docker compose exec app sh
 
+```
 
+5. **查看数据库**：
 
+```bash
+# 方法1：使用 psql 命令行
+docker compose exec db psql -U ${POSTGRES_USER} -d ${POSTGRES_DB}
+
+# 常用 PostgreSQL 命令：
+\dt  # 列出所有表
+\d 表名  # 查看表结构
+SELECT * FROM 表名;  # 查询表数据
+
+# 方法2：使用图形化工具（如 pgAdmin）连接
+# 获取数据库容器的IP和端口
+docker compose ps
+
+# 查看迁移表
+SELECT * FROM _fluent_migrations;
 
 ```
+
+6. 更新数据库，如prompts表。
+> Docs/UpdatePrompts.sql
+> 需要修改一下对应的id值。
 
 
 

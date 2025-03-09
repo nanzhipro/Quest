@@ -78,7 +78,6 @@ public func configure(_ app: Application) async throws {
 
   // 注释掉数据库迁移，使用内存存储进行测试
   app.migrations.add(CreatePrompt())
-  app.migrations.add(CreateInitialPrompt())
   app.migrations.add(CreateUserSubscription())
 
   // 添加自动迁移（仅限开发环境）
