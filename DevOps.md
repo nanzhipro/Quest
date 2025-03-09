@@ -137,3 +137,39 @@ docker compose exec app chmod 644 /app/Resources/Prompts/default.md
 - 使用`--revert`选项回滚迁移
 - 使用`--yes`选项自动确认操作
 - 生产环境建议在维护窗口执行
+
+## Docker 容器权限管理
+
+### 文件权限检查清单
+- [ ] 确认容器内用户 UID/GID
+- [ ] 检查主机文件权限
+- [ ] 验证挂载点权限
+- [ ] 测试文件读写权限
+
+### 常见权限问题解决方案
+1. 使用用户映射
+   ```yaml
+   user: "1000:1000"
+   ```
+
+2. 调整主机文件权限
+   ```bash
+   chown -R 1000:1000 target_directory
+   chmod 644 target_file
+   ```
+
+3. 使用 Docker Volume 权限选项
+   ```yaml
+   volumes:
+     - type: bind
+       source: ./host/path
+       target: /container/path
+       bind:
+         create_host_path: true
+   ```
+
+### 最佳实践
+1. 在 Dockerfile 中正确设置用户和权限
+2. 使用环境变量控制 UID/GID
+3. 实现权限检查的 healthcheck
+4. 使用 readonly 文件系统增加安全性

@@ -10,7 +10,7 @@ import Logging
 import Vapor
 
 enum AppEnvironment {
-  static let jwtSecret = ProcessInfo.processInfo.environment["JWT_SECRET"] ?? "your-256-bit-secret"
+  static let jwtSecret = ProcessInfo.processInfo.environment["JWT_SECRET"] ?? ""
 
   enum LLM {
     static let secretId = ProcessInfo.processInfo.environment["TENCENT_SECRET_ID"] ?? ""
