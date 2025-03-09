@@ -76,7 +76,12 @@ COPY --from=build --chown=vapor:vapor /staging /app
 ENV SWIFT_BACKTRACE=enable=yes,sanitize=yes,threads=all,images=all,interactive=no,swift-backtrace=./swift-backtrace-static
 
 # Create certificate directory
-RUN mkdir -p /app/certs && chown vapor:vapor /app/certs
+# 修改证书目录的权限
+RUN mkdir -p /app/certs && chown -R vapor:vapor /app/certs && chmod 755 /app/certs
+
+# 确保证书文件有正确的权限
+COPY --chown=vapor:vapor ./Docs/ssl/* /app/certs/
+RUN chmod 644 /app/certs/*.pem
 
 # Ensure all further commands run as the vapor user
 USER vapor:vapor
