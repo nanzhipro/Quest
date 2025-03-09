@@ -48,7 +48,7 @@ services:
     ports:
       - "443:443"
     volumes:
-      - ${SSL_CERT_DIR:-./Docs/ssl}:/app/certs:ro
+      - ./Docs/ssl:/app/certs:ro # 直接使用固定路径，不使用环境变量
       - ./.env:/app/.env:rw
       - ./Resources/Prompts:/app/Resources/Prompts:rw
     depends_on:
