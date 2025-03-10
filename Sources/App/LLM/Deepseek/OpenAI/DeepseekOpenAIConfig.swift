@@ -12,7 +12,7 @@ public struct DeepseekOpenAIConfig: Sendable {
     /// 默认配置值
     public enum Defaults {
         public static let host = "api.deepseek.com"
-        public static let timeoutInterval: TimeInterval = 60
+        public static let timeoutInterval: TimeInterval = 120
         public static let model = "deepseek-chat"  // 或 deepseek-coder，都会访问 V2.5 模型
         public static let maxQueueSize = 100
         public static let maxConcurrentRequests = 10
