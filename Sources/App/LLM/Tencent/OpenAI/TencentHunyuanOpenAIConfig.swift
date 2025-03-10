@@ -6,7 +6,8 @@ public struct TencentHunyuanOpenAIConfig: Sendable {
   public enum Defaults {
     public static let host = "api.hunyuan.cloud.tencent.com"
     public static let timeoutInterval: TimeInterval = 60
-    public static let model = "hunyuan-large" // hunyuan-standard ｜ hunyuan-lite ｜ hunyuan-large 
+    // 计费： https://cloud.tencent.com/document/product/1729/97731
+    public static let model = "hunyuan-standard-256K" // hunyuan-standard ｜ hunyuan-standard-256K ｜ hunyuan-lite ｜ hunyuan-large 
     public static let maxQueueSize = 100
     public static let maxConcurrentRequests = 10
   }
