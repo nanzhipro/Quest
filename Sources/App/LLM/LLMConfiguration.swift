@@ -59,7 +59,6 @@ public extension LLMConfiguration {
         
         log(.debug, "Retrieved provider", [
             "provider": provider.name,
-            "models": provider.supportedModels.joined(separator: ", ")
         ])
         
         return provider

@@ -13,9 +13,6 @@ public protocol LLMProvider: Sendable {
   /// 服务提供者名称
   var name: String { get }
 
-  /// 支持的模型列表
-  var supportedModels: [String] { get }
-
   /// 执行 LLM 请求
   /// - Parameter request: LLM 请求内容
   /// - Returns: LLM 响应结果

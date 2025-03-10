@@ -10,9 +10,7 @@ import Foundation
 import Vapor
 
 public final class DeepseekOpenAIProvider: LLMProvider {
-    public let name = "DeepseekOpenAI"
-    public let supportedModels = ["deepseek-chat"]
-    
+    public let name = "DeepseekOpenAI"    
     private let openAI: OpenAI
     private let configuration: DeepseekOpenAIConfig
     private let requestQueue: RequestQueue

@@ -11,8 +11,6 @@ import Vapor
 
 public final class TencentHunyuanProvider: LLMProvider {
   public let name = "TencentHunyuan"
-  public let supportedModels = ["hunyuan-lite"]
-
   private let apiService: APIServiceProtocol
   private let signer: TencentHunyuanSigner
   private let logger: Logger
@@ -69,7 +67,6 @@ public final class TencentHunyuanProvider: LLMProvider {
         "Invalid configuration",
         metadata: [
           "model": .string(request.config.model),
-          "supportedModels": .string(supportedModels.joined(separator: ", ")),
         ], source: source)
       throw LLMError.invalidConfiguration("Unsupported model: \(request.config.model)")
     }
@@ -188,6 +185,6 @@ public final class TencentHunyuanProvider: LLMProvider {
   }
 
   public func validateConfig(_ config: LLMConfig) -> Bool {
-    return supportedModels.contains(config.model)
+    return true
   }
 }
