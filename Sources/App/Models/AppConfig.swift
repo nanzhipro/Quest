@@ -12,7 +12,9 @@ import Vapor
 struct AppConfig: Content {
     // RevenueCat API 密钥
     let revenuecatApiKey: String
-    
+    // 当未订阅时，是否启用高级功能, 默认是 false
+    let enablePremiumFeaturesWhenUnsubscribed: Bool
+
     // 从环境变量中加载配置
     // - Parameter environment: Vapor 的环境对象
     // - Returns: 配置完成的 AppConfig 实例
@@ -21,7 +23,11 @@ struct AppConfig: Content {
         guard let key = Environment.get("REVENUECAT_API_KEY") else {
             throw Abort(.internalServerError, reason: "REVENUECAT_API_KEY not configured")
         }
-        
-        return AppConfig(revenuecatApiKey: key)
+
+        guard let enablePremiumFeaturesWhenUnsubscribed = Environment.get("ENABLE_PREMIUM_FEATURES_WHEN_UNSUBSCRIBED") else {
+            throw Abort(.internalServerError, reason: "ENABLE_PREMIUM_FEATURES_WHEN_UNSUBSCRIBED not configured")
+        }
+
+        return AppConfig(revenuecatApiKey: key, enablePremiumFeaturesWhenUnsubscribed: enablePremiumFeaturesWhenUnsubscribed == "true")
     }
 }
