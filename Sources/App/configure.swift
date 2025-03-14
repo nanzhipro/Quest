@@ -28,6 +28,10 @@ public func configure(_ app: Application) async throws {
       "logLevel": .string("\(app.logger.logLevel)"),
     ], source: "configure")
 
+  // 设置最大请求体大小为 1MB
+  app.routes.defaultMaxBodySize = "1mb"
+  app.log.info("Set default max body size to 1mb")
+
   // 加载 .env 文件
   _ = try Environment.detect()
   app.logger.info("Environment variables loaded")
