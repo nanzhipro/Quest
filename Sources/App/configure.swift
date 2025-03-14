@@ -30,7 +30,11 @@ public func configure(_ app: Application) async throws {
 
   // 设置最大请求体大小为 1MB
   app.routes.defaultMaxBodySize = "1mb"
-  app.log.info("Set default max body size to 1mb")
+  app.log.info(
+    "Set default max body size to 1mb", 
+    metadata: ["maxBodySize": .string("1mb")], 
+    source: "configure"
+  )
 
   // 加载 .env 文件
   _ = try Environment.detect()
