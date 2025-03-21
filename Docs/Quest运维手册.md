@@ -18,6 +18,11 @@
 /app/certs/cert.pem
 /app/certs/key.pem
 
+4. 尝试docker build，如果失败。无法连接github，需要修改dns
+/etc/host 增加
+140.82.114.3 github.com
+185.199.108.133 raw.githubusercontent.com
+
 
 4. **构建和启动服务**：
 
