@@ -82,7 +82,9 @@ public func configure(_ app: Application) async throws {
   }
 
   // 注册 LLM 路由
-  try LLMController().routes(app)
+  try LLMController(promptService: app.environment == .testing ? 
+                               InMemoryPromptService.shared : 
+                               DatabasePromptService(db: app.db)).routes(app)
 
   // 注释掉数据库迁移，使用内存存储进行测试
   app.migrations.add(CreatePrompt())

@@ -130,3 +130,29 @@
         case requestId = "RequestId"
       }
     }
+
+    /// 客户端 LLM 聊天请求
+    public struct LLMClientChatRequest: Content {
+      public let calendarNamesList: String
+      public let userContext: String
+      public let placeholderText: String
+      
+      public init(
+        calendarNamesList: String,
+        userContext: String,
+        placeholderText: String
+      ) {
+        self.calendarNamesList = calendarNamesList
+        self.userContext = userContext
+        self.placeholderText = placeholderText
+      }
+      
+      enum CodingKeys: String, CodingKey {
+        case calendarNamesList = "CALENDAR_NAMES_LIST"
+        case userContext = "USER_CONTEXT"
+        case placeholderText = "PLACEHOLDER_TEXT"
+      }
+    }
+
+    /// 客户端 LLM 聊天响应，与 LLMResponse 保持一致
+    public typealias LLMClientChatResponse = LLMResponse
