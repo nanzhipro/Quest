@@ -44,6 +44,15 @@ public func configure(_ app: Application) async throws {
   if Environment.get("TENCENT_SECRET_ID") == nil {
     app.logger.warning("TENCENT_SECRET_ID not found in environment")
   }
+  
+  // 记录当前使用的腾讯混元模型
+  app.logger.info(
+    "Tencent Hunyuan Model configuration",
+    metadata: [
+      "model": .string(Environment.get("TENCENT_MODEL") ?? "hunyuan-standard-256K (default)")
+    ],
+    source: "configure"
+  )
 
   // uncomment to serve files from /Public folder
   // app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))

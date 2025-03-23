@@ -39,6 +39,16 @@ public final class TencentHunyuanOpenAIProvider: LLMProvider {
             host: configuration.host,
             timeoutInterval: configuration.timeoutInterval
         ))
+        
+        // 记录 Provider 初始化配置信息
+        logger.info("TencentHunyuanOpenAI Provider initialized", metadata: [
+            "name": .string(name),
+            "host": .string(configuration.host),
+            "model": .string(configuration.model),
+            "timeoutInterval": .string("\(configuration.timeoutInterval)s"),
+            "maxQueueSize": .string("\(configuration.maxQueueSize)"),
+            "maxConcurrentRequests": .string("\(configuration.maxConcurrentRequests)")
+        ], source: "TencentHunyuanOpenAIProvider.init")
     }
     
     public func execute(_ request: LLMRequest) async throws -> LLMResponse {

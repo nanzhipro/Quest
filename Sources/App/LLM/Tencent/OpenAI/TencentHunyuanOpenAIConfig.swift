@@ -1,13 +1,17 @@
 import Foundation
+import Vapor
 
 /// 腾讯混元 OpenAI 客户端配置
 public struct TencentHunyuanOpenAIConfig: Sendable {
   /// 默认配置值
   public enum Defaults {
     public static let host = "api.hunyuan.cloud.tencent.com"
-    public static let timeoutInterval: TimeInterval = 120
+    public static let timeoutInterval: TimeInterval = 180
     // 计费： https://cloud.tencent.com/document/product/1729/97731
-    public static let model = "hunyuan-standard-256K" // hunyuan-standard ｜ hunyuan-standard-256K ｜ hunyuan-lite ｜ hunyuan-large 
+    /// hunyuan-standard ｜ hunyuan-standard-256K ｜ hunyuan-lite ｜ hunyuan-large ｜ hunyuan-t1-latest
+    public static var model: String {
+      Environment.get("TENCENT_MODEL") ?? "hunyuan-standard-256K"
+    }
     public static let maxQueueSize = 100
     public static let maxConcurrentRequests = 10
   }

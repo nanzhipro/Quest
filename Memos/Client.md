@@ -99,3 +99,9 @@ curl -X GET http://your-server/api/v1/prompts
 1. 请求体大小限制为 1MB
 2. 如需处理大型文本，建议分段处理
 3. 请求受到 JWT 认证保护，确保包含有效的授权令牌
+4. 服务端支持通过环境变量 `TENCENT_MODEL` 动态切换模型，可用模型包括：
+   - `hunyuan-standard`
+   - `hunyuan-standard-256K`（默认值）
+   - `hunyuan-lite`
+   - `hunyuan-large`
+   - `hunyuan-t1-latest`

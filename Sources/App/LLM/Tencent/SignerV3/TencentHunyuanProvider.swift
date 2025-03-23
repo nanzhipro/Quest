@@ -54,6 +54,16 @@ public final class TencentHunyuanProvider: LLMProvider {
     )
 
     self.logger = app.logger
+    
+    // 记录 Provider 初始化配置信息
+    logger.info("TencentHunyuan Provider initialized", metadata: [
+      "name": .string(name),
+      "service": .string(service),
+      "endpoint": .string(endpoint),
+      "model": .string(config.model),
+      "maxQueueSize": .string("\(config.maxQueueSize)"),
+      "maxConcurrentRequests": .string("\(config.maxConcurrentRequests)")
+    ], source: "TencentHunyuanProvider.init")
   }
 
   deinit {
