@@ -11,6 +11,10 @@ let package = Package(
             name: "revenuecat-sign",
             targets: ["RevenueCatSignatureCLI"]
         ),
+        .library(
+            name: "TencentCloudAPI",
+            targets: ["TencentCloudAPI"]
+        ),
     ],
     dependencies: [
         // 💧 A server-side Swift web framework.
@@ -29,6 +33,8 @@ let package = Package(
         .package(url: "https://github.com/MacPaw/OpenAI.git", branch: "main"),
         // 🔑 Swift Crypto
         .package(url: "https://github.com/apple/swift-crypto.git", "1.0.0" ..< "4.0.0"),
+        // 🧰 Swift Async Algorithms
+        .package(url: "https://github.com/apple/swift-async-algorithms", from: "0.1.0"),
     ],
     targets: [
         .executableTarget(
@@ -43,6 +49,7 @@ let package = Package(
                 .product(name: "JWT", package: "jwt"),
                 .product(name: "OpenAI", package: "OpenAI"),
                 .product(name: "Crypto", package: "swift-crypto"),
+                .target(name: "TencentCloudAPI"),
             ],
             swiftSettings: [
                 .unsafeFlags(["-cross-module-optimization"], .when(configuration: .release))
@@ -54,11 +61,25 @@ let package = Package(
                 .product(name: "Crypto", package: "swift-crypto"),
             ]
         ),
+        .target(
+            name: "TencentCloudAPI",
+            dependencies: [
+                .product(name: "Crypto", package: "swift-crypto"),
+                .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
+            ]
+        ),
         .testTarget(
             name: "AppTests",
             dependencies: [
                 .target(name: "App"),
                 .product(name: "XCTVapor", package: "vapor"),
+            ],
+            swiftSettings: swiftSettings
+        ),
+        .testTarget(
+            name: "TencentCloudAPITests",
+            dependencies: [
+                .target(name: "TencentCloudAPI"),
             ],
             swiftSettings: swiftSettings
         )
