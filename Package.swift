@@ -11,6 +11,10 @@ let package = Package(
             name: "revenuecat-sign",
             targets: ["RevenueCatSignatureCLI"]
         ),
+        .executable(
+            name: "asr-cli",
+            targets: ["ASRCLI"]
+        ),
         .library(
             name: "TencentCloudAPI",
             targets: ["TencentCloudAPI"]
@@ -59,6 +63,12 @@ let package = Package(
             name: "RevenueCatSignatureCLI",
             dependencies: [
                 .product(name: "Crypto", package: "swift-crypto"),
+            ]
+        ),
+        .executableTarget(
+            name: "ASRCLI",
+            dependencies: [
+                .target(name: "TencentCloudAPI"),
             ]
         ),
         .target(

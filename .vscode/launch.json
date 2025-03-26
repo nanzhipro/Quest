@@ -35,6 +35,24 @@
       "name": "Release revenuecat-sign",
       "program": "${workspaceFolder:Quest}/.build/release/revenuecat-sign",
       "preLaunchTask": "swift: Build Release revenuecat-sign"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:Quest}",
+      "name": "Debug asr-cli",
+      "program": "${workspaceFolder:Quest}/.build/debug/asr-cli",
+      "preLaunchTask": "swift: Build Debug asr-cli"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:Quest}",
+      "name": "Release asr-cli",
+      "program": "${workspaceFolder:Quest}/.build/release/asr-cli",
+      "preLaunchTask": "swift: Build Release asr-cli"
     }
   ]
 }
