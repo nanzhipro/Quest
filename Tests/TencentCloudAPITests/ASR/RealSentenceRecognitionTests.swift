@@ -35,7 +35,7 @@ final class RealSentenceRecognitionTests: XCTestCase {
         // 创建ASR服务
         let asrService = tencent.asr()
 
-        let testAudioPath = "/Users/nanzhi/Downloads/audio (2).wav"
+        let testAudioPath = "/Users/nanzhi/Downloads/audio (4).wav"
         
         // 创建请求
         let request = try ASRService.createSentenceRecognitionRequestFromFile(

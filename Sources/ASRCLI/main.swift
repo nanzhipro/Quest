@@ -59,12 +59,12 @@ struct ASRCLI {
             print("----------------------------------------")
             print("音频时长: \(response.audioDuration)ms")
             
-            if let wordList = response.wordList {
-                print("\n词时间戳:")
-                for word in wordList {
-                    print("  \(word.word): \(word.startTime)ms - \(word.endTime)ms")
-                }
-            }
+            // if let wordList = response.wordList {
+            //     print("\n词时间戳:")
+            //     for word in wordList {
+            //         print("  \(word.word): \(word.startTime)ms - \(word.endTime)ms")
+            //     }
+            // }
             
         } catch {
             print("错误: \(error.localizedDescription)")

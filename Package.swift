@@ -15,6 +15,10 @@ let package = Package(
             name: "asr-cli",
             targets: ["ASRCLI"]
         ),
+        .executable(
+            name: "stress-test",
+            targets: ["StressTestCLI"]
+        ),
         .library(
             name: "TencentCloudAPI",
             targets: ["TencentCloudAPI"]
@@ -39,6 +43,10 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-crypto.git", "1.0.0" ..< "4.0.0"),
         // 🧰 Swift Async Algorithms
         .package(url: "https://github.com/apple/swift-async-algorithms", from: "0.1.0"),
+        // 🌐 Async HTTP Client
+        .package(url: "https://github.com/swift-server/async-http-client.git", from: "1.25.2"),
+        // 📝 Argument Parser
+        .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.3.0"),
     ],
     targets: [
         .executableTarget(
@@ -71,11 +79,23 @@ let package = Package(
                 .target(name: "TencentCloudAPI"),
             ]
         ),
+        .executableTarget(
+            name: "StressTestCLI",
+            dependencies: [
+                .target(name: "TencentCloudAPI"),
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+            ]
+        ),
         .target(
             name: "TencentCloudAPI",
             dependencies: [
                 .product(name: "Crypto", package: "swift-crypto"),
                 .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
+                .product(name: "AsyncHTTPClient", package: "async-http-client"),
+                .product(name: "NIOCore", package: "swift-nio"),
+            ],
+            resources: [
+                .process("README.md")
             ]
         ),
         .testTarget(
@@ -100,4 +120,5 @@ let package = Package(
 var swiftSettings: [SwiftSetting] { [
     .enableUpcomingFeature("DisableOutwardActorInference"),
     .enableExperimentalFeature("StrictConcurrency"),
+    .unsafeFlags(["-cross-module-optimization"], .when(configuration: .release))
 ] }

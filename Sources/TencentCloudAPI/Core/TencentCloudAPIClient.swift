@@ -6,20 +6,36 @@
 //
 
 import Foundation
-import AsyncAlgorithms
+import AsyncHTTPClient
+import NIOCore
 
 /// 腾讯云API客户端
 public class TencentCloudAPIClient {
+    // MARK: - Constants
+    
+    private enum Constants {
+        static let contentType = "application/json; charset=utf-8"
+        static let httpMethod = "POST"
+        static let canonicalURI = "/"
+        static let canonicalQueryString = ""
+        static let signedHeaders = "content-type;host;x-tc-action"
+        static let successStatusCodes = 200...299
+    }
+    
+    // MARK: - Properties
+    
     /// API配置
     public let config: TencentCloudAPIConfig
     /// 签名生成器
     private let signatureGenerator: TC3SignatureGenerator
-    /// URL会话
-    private let urlSession: URLSession
+    /// HTTP客户端
+    private let httpClient: HTTPClient
     /// JSON编码器
     private let jsonEncoder: JSONEncoder
     /// JSON解码器
     private let jsonDecoder: JSONDecoder
+    
+    // MARK: - Initialization
     
     /// 初始化腾讯云API客户端
     /// - Parameter config: API配置
@@ -30,14 +46,26 @@ public class TencentCloudAPIClient {
             secretKey: config.secretKey
         )
         
-        let sessionConfig = URLSessionConfiguration.default
-        sessionConfig.timeoutIntervalForRequest = config.requestTimeout
-        sessionConfig.timeoutIntervalForResource = config.requestTimeout
-        self.urlSession = URLSession(configuration: sessionConfig)
+        var httpClientConfig = HTTPClient.Configuration()
+        httpClientConfig.timeout = .init(
+            connect: .seconds(Int64(config.requestTimeout)),
+            read: .seconds(Int64(config.requestTimeout))
+        )
+        
+        self.httpClient = HTTPClient(
+            eventLoopGroupProvider: .singleton,
+            configuration: httpClientConfig
+        )
         
         self.jsonEncoder = JSONEncoder()
         self.jsonDecoder = JSONDecoder()
     }
+    
+    deinit {
+        try? httpClient.syncShutdown()
+    }
+    
+    // MARK: - Public Methods
     
     /// 发送API请求
     /// - Parameters:
@@ -52,32 +80,65 @@ public class TencentCloudAPIClient {
         request: T,
         responseType: R.Type
     ) async throws -> R {
+        let request = try await buildRequest(
+            action: action,
+            version: version,
+            request: request
+        )
+        
+        let response = try await executeRequest(request: request)
+        return try await handleResponse(response: response, responseType: responseType)
+    }
+    
+    // MARK: - Private Methods
+    
+    /// 构建API请求
+    private func buildRequest<T: Encodable>(
+        action: String,
+        version: String,
+        request: T
+    ) async throws -> HTTPClientRequest {
         let host = config.endpoint
-        let url = URL(string: "https://\(host)")!
+        var httpRequest = HTTPClientRequest(url: "https://\(host)")
+        httpRequest.method = .POST
         
-        // 生成请求体JSON
         let requestData = try jsonEncoder.encode(request)
-        let requestBody = String(data: requestData, encoding: .utf8)!
+        httpRequest.body = .bytes(ByteBuffer(data: requestData))
         
-        // 创建HTTP请求
-        var urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = "POST"
-        urlRequest.httpBody = requestData
+        // 设置请求头
+        try await setRequestHeaders(
+            request: &httpRequest,
+            host: host,
+            action: action,
+            version: version,
+            requestBody: String(data: requestData, encoding: .utf8)!
+        )
         
-        // 设置公共头部
-        urlRequest.setValue("application/json; charset=utf-8", forHTTPHeaderField: "Content-Type")
-        urlRequest.setValue(host, forHTTPHeaderField: "Host")
-        urlRequest.setValue(action, forHTTPHeaderField: "X-TC-Action")
-        urlRequest.setValue(version, forHTTPHeaderField: "X-TC-Version")
-        urlRequest.setValue(config.region, forHTTPHeaderField: "X-TC-Region")
+        return httpRequest
+    }
+    
+    /// 设置请求头
+    private func setRequestHeaders(
+        request: inout HTTPClientRequest,
+        host: String,
+        action: String,
+        version: String,
+        requestBody: String
+    ) async throws {
+        // 设置基本请求头
+        request.headers.add(name: "Content-Type", value: Constants.contentType)
+        request.headers.add(name: "Host", value: host)
+        request.headers.add(name: "X-TC-Action", value: action)
+        request.headers.add(name: "X-TC-Version", value: version)
+        request.headers.add(name: "X-TC-Region", value: config.region)
         
-        // 生成时间戳
+        // 设置时间戳
         let timestamp = Int(Date().timeIntervalSince1970)
-        urlRequest.setValue("\(timestamp)", forHTTPHeaderField: "X-TC-Timestamp")
+        request.headers.add(name: "X-TC-Timestamp", value: "\(timestamp)")
         
         // 构建规范头部字符串
         let canonicalHeaders = """
-        content-type:application/json; charset=utf-8
+        content-type:\(Constants.contentType)
         host:\(host)
         x-tc-action:\(action.lowercased())
         
@@ -85,98 +146,96 @@ public class TencentCloudAPIClient {
         
         // 构建签名信息
         let requestInfo = TC3RequestInfo(
-            httpMethod: "POST",
-            canonicalURI: "/",
-            canonicalQueryString: "",
+            httpMethod: Constants.httpMethod,
+            canonicalURI: Constants.canonicalURI,
+            canonicalQueryString: Constants.canonicalQueryString,
             canonicalHeaders: canonicalHeaders,
-            signedHeaders: "content-type;host;x-tc-action",
+            signedHeaders: Constants.signedHeaders,
             requestPayload: requestBody
         )
         
-        // 生成授权头部
+        // 生成并设置授权头部
         let authorizationHeader = try signatureGenerator.generateAuthorizationHeader(
             service: host.split(separator: ".").first.map(String.init) ?? "asr",
             timestamp: timestamp,
             requestInfo: requestInfo
         )
-        
-        // 设置授权头部
-        urlRequest.setValue(authorizationHeader, forHTTPHeaderField: "Authorization")
-        
-        // 发送请求
-        let (data, response) = try await executeRequest(urlRequest: urlRequest)
-        
-        // 验证HTTP响应
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw TencentCloudAPIError.requestFailed(message: "无效的HTTP响应")
+        request.headers.add(name: "Authorization", value: authorizationHeader)
+    }
+    
+    /// 处理API响应
+    private func handleResponse<R: Decodable>(
+        response: HTTPClientResponse,
+        responseType: R.Type
+    ) async throws -> R {
+        guard Constants.successStatusCodes.contains(Int(response.status.code)) else {
+            let body = try await response.body.collect(upTo: 1024 * 1024)
+            try await handleErrorResponse(data: body, statusCode: response.status.code)
+            throw TencentCloudAPIError.unknown(message: "未知错误")
         }
         
-        // 检查HTTP状态码
-        guard (200...299).contains(httpResponse.statusCode) else {
-            // 尝试解析错误响应
-            do {
-                let errorResponse = try jsonDecoder.decode(TencentCloudAPIErrorResponse.self, from: data)
-                throw TencentCloudAPIError.serviceError(
-                    code: errorResponse.error.code,
-                    message: errorResponse.error.message
-                )
-            } catch {
-                if let error = error as? TencentCloudAPIError {
-                    throw error
-                }
-                
-                throw TencentCloudAPIError.responseParsingFailed(
-                    message: "HTTP状态码: \(httpResponse.statusCode), 无法解析错误响应: \(String(data: data, encoding: .utf8) ?? "")"
-                )
-            }
-        }
-        
-        // 解析响应数据
+        let body = try await response.body.collect(upTo: 1024 * 1024)
+        return try await parseResponse(data: body, responseType: responseType)
+    }
+    
+    /// 处理错误响应
+    private func handleErrorResponse(data: ByteBuffer, statusCode: UInt) async throws {
         do {
-            // 先尝试解析包装器响应
+            let errorResponse = try jsonDecoder.decode(TencentCloudAPIErrorResponse.self, from: data)
+            throw TencentCloudAPIError.serviceError(
+                code: errorResponse.error.code,
+                message: errorResponse.error.message
+            )
+        } catch {
+            if let error = error as? TencentCloudAPIError {
+                throw error
+            }
+            
+            throw TencentCloudAPIError.responseParsingFailed(
+                message: "HTTP状态码: \(statusCode), 无法解析错误响应: \(String(data: Data(data.readableBytesView), encoding: .utf8) ?? "")"
+            )
+        }
+    }
+    
+    /// 解析响应数据
+    private func parseResponse<R: Decodable>(
+        data: ByteBuffer,
+        responseType: R.Type
+    ) async throws -> R {
+        do {
             let wrapperResponse = try jsonDecoder.decode(TencentCloudAPIResponse<R>.self, from: data)
             return wrapperResponse.response
         } catch {
-            // 如果解析包装器失败，尝试直接解析响应
             return try jsonDecoder.decode(R.self, from: data)
         }
     }
     
     /// 执行HTTP请求，支持自动重试
-    /// - Parameter urlRequest: URL请求
-    /// - Returns: 响应数据和响应对象
-    private func executeRequest(urlRequest: URLRequest) async throws -> (Data, URLResponse) {
+    private func executeRequest(request: HTTPClientRequest) async throws -> HTTPClientResponse {
         if !config.autoRetry {
-            // 不启用自动重试，直接发送请求
-            return try await urlSession.data(for: urlRequest)
+            return try await httpClient.execute(request, timeout: .seconds(Int64(config.requestTimeout)))
         }
         
-        // 启用自动重试
         var lastError: Error?
         var retryCount = 0
-        
-        // 重试策略：指数退避
         let retryDelays = [0.5, 1.0, 2.0, 4.0, 8.0]
         
         while retryCount <= config.maxRetries {
             do {
-                return try await urlSession.data(for: urlRequest)
+                return try await httpClient.execute(request, timeout: .seconds(Int64(config.requestTimeout)))
             } catch {
                 lastError = error
                 retryCount += 1
                 
-                // 如果达到最大重试次数，抛出最后一个错误
                 if retryCount > config.maxRetries {
                     throw TencentCloudAPIError.requestFailed(message: "请求失败，已重试\(retryCount - 1)次: \(error.localizedDescription)")
                 }
                 
-                // 等待一段时间后重试
                 let delay = retryCount - 1 < retryDelays.count ? retryDelays[retryCount - 1] : retryDelays.last!
                 try await Task.sleep(for: .seconds(delay))
             }
         }
         
-        // 不应该到达这里，但为了代码安全性
         throw lastError ?? TencentCloudAPIError.unknown(message: "未知错误")
     }
 } 

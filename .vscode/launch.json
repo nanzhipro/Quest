@@ -53,6 +53,24 @@
       "name": "Release asr-cli",
       "program": "${workspaceFolder:Quest}/.build/release/asr-cli",
       "preLaunchTask": "swift: Build Release asr-cli"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:Quest}",
+      "name": "Debug stress-test",
+      "program": "${workspaceFolder:Quest}/.build/debug/stress-test",
+      "preLaunchTask": "swift: Build Debug stress-test"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:Quest}",
+      "name": "Release stress-test",
+      "program": "${workspaceFolder:Quest}/.build/release/stress-test",
+      "preLaunchTask": "swift: Build Release stress-test"
     }
   ]
 }
