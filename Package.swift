@@ -84,6 +84,9 @@ let package = Package(
             dependencies: [
                 .target(name: "TencentCloudAPI"),
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "AsyncHTTPClient", package: "async-http-client"),
+                .product(name: "NIOCore", package: "swift-nio"),
+                .product(name: "NIOPosix", package: "swift-nio"),
             ]
         ),
         .target(
