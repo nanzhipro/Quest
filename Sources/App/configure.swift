@@ -29,7 +29,7 @@ public func configure(_ app: Application) async throws {
     ], source: "configure")
 
   // 设置最大请求体大小为 1MB
-  app.routes.defaultMaxBodySize = "1mb"
+  app.routes.defaultMaxBodySize = "10mb"
   app.log.info(
     "Set default max body size to 1mb", 
     metadata: ["maxBodySize": .string("1mb")], 

@@ -90,18 +90,67 @@ struct VoiceRecognitionController: RouteCollection {
     func boot(routes: RoutesBuilder) throws {
         let voiceRoutes = routes.grouped("api", "v1", "voice")
         voiceRoutes.post("recognize", use: recognizeVoice)
+        
+        // 添加一个健康检查端点
+        voiceRoutes.get("health") { req -> String in
+            req.logger.info("语音识别服务健康检查", source: "VoiceRecognitionController")
+            return "语音识别服务正常"
+        }
     }
     
     /// 处理语音识别请求
     /// - Parameter req: HTTP请求
     /// - Returns: 语音识别响应
     func recognizeVoice(req: Request) async throws -> VoiceRecognitionResponse {
+        // 生成请求ID用于日志跟踪
+        let requestTraceId = UUID().uuidString.prefix(8)
+        
+        req.logger.info("收到语音识别请求", 
+                      metadata: ["traceId": .string(String(requestTraceId))], 
+                      source: "VoiceRecognitionController")
+        
+        // 解码请求
+        let startDecodeTime = Date()
         let voiceRequest = try req.content.decode(VoiceRecognitionRequest.self)
+        
+        // 计算音频数据大小
+        let audioDataSize = voiceRequest.audioData.count
+        let audioDataSizeKB = Double(audioDataSize) / 1024.0
+        
+        req.logger.debug("请求解码完成", 
+                       metadata: [
+                           "traceId": .string(String(requestTraceId)),
+                           "audioFormat": .string(voiceRequest.audioFormat ?? "wav"),
+                           "engineType": .string(voiceRequest.engineType ?? "16k_zh"),
+                           "audioDataSize": .string(String(format: "%.2f KB", audioDataSizeKB)),
+                           "decodeTime": .string("\(Date().timeIntervalSince(startDecodeTime) * 1000) ms")
+                       ], 
+                       source: "VoiceRecognitionController")
         
         // 验证语音数据
         guard !voiceRequest.audioData.isEmpty else {
+            req.logger.error("语音数据为空", 
+                           metadata: ["traceId": .string(String(requestTraceId))], 
+                           source: "VoiceRecognitionController")
             throw Abort(.badRequest, reason: "语音数据不能为空")
         }
+        
+        // 验证数据大小
+        guard let audioBytes = Data(base64Encoded: voiceRequest.audioData) else {
+            req.logger.error("Base64解码失败", 
+                           metadata: ["traceId": .string(String(requestTraceId))], 
+                           source: "VoiceRecognitionController")
+            throw Abort(.badRequest, reason: "音频数据Base64解码失败")
+        }
+        
+        let audioByteSize = audioBytes.count
+        req.logger.debug("音频数据验证", 
+                       metadata: [
+                           "traceId": .string(String(requestTraceId)),
+                           "audioByteSize": .string("\(audioByteSize) bytes"),
+                           "audioDataSizeKB": .string(String(format: "%.2f KB", Double(audioByteSize) / 1024.0))
+                       ], 
+                       source: "VoiceRecognitionController")
         
         // 创建ASR服务实例
         let asrService = tencentCloud.asr()
@@ -112,7 +161,7 @@ struct VoiceRecognitionController: RouteCollection {
             sourceType: 1,  // 使用数据模式
             voiceFormat: voiceRequest.audioFormat ?? "wav",
             data: voiceRequest.audioData,
-            dataLen: Data(base64Encoded: voiceRequest.audioData)?.count,
+            dataLen: audioByteSize,
             wordInfo: voiceRequest.wordInfo,
             filterDirty: voiceRequest.filterDirty,
             filterModal: voiceRequest.filterModal,
@@ -120,28 +169,124 @@ struct VoiceRecognitionController: RouteCollection {
             convertNumMode: voiceRequest.convertNumMode
         )
         
+        req.logger.info("发送请求到腾讯云ASR服务", 
+                      metadata: [
+                          "traceId": .string(String(requestTraceId)),
+                          "engineType": .string(request.engineType),
+                          "voiceFormat": .string(request.voiceFormat),
+                          "wordInfo": .string(request.wordInfo.map { "\($0)" } ?? "nil")
+                      ], 
+                      source: "VoiceRecognitionController")
+        
         // 发送请求到腾讯云
+        let startProcessTime = Date()
         do {
             let response = try await asrService.sentenceRecognition(request: request)
+            let processTime = Date().timeIntervalSince(startProcessTime) * 1000
+            
+            // 截取识别结果的前30个字符用于日志
+            let previewText = response.result.count > 30 
+                ? "\(response.result.prefix(30))..." 
+                : response.result
+            
+            req.logger.info("语音识别成功", 
+                          metadata: [
+                              "traceId": .string(String(requestTraceId)),
+                              "requestId": .string(response.requestId),
+                              "audioDuration": .string("\(response.audioDuration) ms"),
+                              "wordCount": .string("\(response.wordList?.count ?? 0)"),
+                              "processTime": .string(String(format: "%.2f ms", processTime)),
+                              "resultPreview": .string(previewText)
+                          ], 
+                          source: "VoiceRecognitionController")
+            
             return VoiceRecognitionResponse(from: response)
         } catch let error as TencentCloudAPIError {
             // 处理腾讯云API特定错误
+            let errorTime = Date().timeIntervalSince(startProcessTime) * 1000
+            
             switch error {
             case .requestFailed(let message):
+                req.logger.error("请求失败", 
+                               metadata: [
+                                   "traceId": .string(String(requestTraceId)),
+                                   "errorTime": .string(String(format: "%.2f ms", errorTime)),
+                                   "errorType": .string("RequestFailed"),
+                                   "message": .string(message)
+                               ], 
+                               source: "VoiceRecognitionController")
                 throw Abort(.serviceUnavailable, reason: "请求失败: \(message)")
+                
             case .signatureGenerationFailed(let message):
+                req.logger.error("签名生成失败", 
+                               metadata: [
+                                   "traceId": .string(String(requestTraceId)),
+                                   "errorTime": .string(String(format: "%.2f ms", errorTime)),
+                                   "errorType": .string("SignatureGenerationFailed"),
+                                   "message": .string(message)
+                               ], 
+                               source: "VoiceRecognitionController")
                 throw Abort(.internalServerError, reason: "签名生成失败: \(message)")
+                
             case .invalidParameter(let paramName, let message):
+                req.logger.error("参数无效", 
+                               metadata: [
+                                   "traceId": .string(String(requestTraceId)),
+                                   "errorTime": .string(String(format: "%.2f ms", errorTime)),
+                                   "errorType": .string("InvalidParameter"),
+                                   "paramName": .string(paramName),
+                                   "message": .string(message)
+                               ], 
+                               source: "VoiceRecognitionController")
                 throw Abort(.badRequest, reason: "参数无效[\(paramName)]: \(message)")
+                
             case .responseParsingFailed(let message):
+                req.logger.error("响应解析失败", 
+                               metadata: [
+                                   "traceId": .string(String(requestTraceId)),
+                                   "errorTime": .string(String(format: "%.2f ms", errorTime)),
+                                   "errorType": .string("ResponseParsingFailed"),
+                                   "message": .string(message)
+                               ], 
+                               source: "VoiceRecognitionController")
                 throw Abort(.internalServerError, reason: "响应解析失败: \(message)")
+                
             case .serviceError(let code, let message):
+                req.logger.error("腾讯云服务错误", 
+                               metadata: [
+                                   "traceId": .string(String(requestTraceId)),
+                                   "errorTime": .string(String(format: "%.2f ms", errorTime)),
+                                   "errorType": .string("ServiceError"),
+                                   "errorCode": .string(code),
+                                   "message": .string(message)
+                               ], 
+                               source: "VoiceRecognitionController")
                 throw Abort(.serviceUnavailable, reason: "服务错误[\(code)]: \(message)")
+                
             case .unknown(let message):
+                req.logger.error("未知错误", 
+                               metadata: [
+                                   "traceId": .string(String(requestTraceId)),
+                                   "errorTime": .string(String(format: "%.2f ms", errorTime)),
+                                   "errorType": .string("Unknown"),
+                                   "message": .string(message)
+                               ], 
+                               source: "VoiceRecognitionController")
                 throw Abort(.internalServerError, reason: "未知错误: \(message)")
             }
         } catch {
             // 处理其他错误
+            let errorTime = Date().timeIntervalSince(startProcessTime) * 1000
+            
+            req.logger.error("处理异常", 
+                           metadata: [
+                               "traceId": .string(String(requestTraceId)),
+                               "errorTime": .string(String(format: "%.2f ms", errorTime)),
+                               "errorType": .string("\(type(of: error))"),
+                               "message": .string(error.localizedDescription)
+                           ], 
+                           source: "VoiceRecognitionController")
+            
             throw Abort(.internalServerError, reason: "语音识别处理错误: \(error.localizedDescription)")
         }
     }
