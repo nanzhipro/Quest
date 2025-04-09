@@ -178,10 +178,19 @@ public class TencentCloudAPIClient {
     return try await parseResponse(data: body, responseType: responseType)
   }
 
+  /// 将ByteBuffer转换为Data
+  private func convertToData(buffer: ByteBuffer) -> Foundation.Data {
+    var buffer = buffer
+    if let bytes = buffer.readBytes(length: buffer.readableBytes) {
+      return Foundation.Data(bytes)
+    }
+    return Foundation.Data()
+  }
+
   /// 处理错误响应
   private func handleErrorResponse(data: ByteBuffer, statusCode: UInt) async throws {
     do {
-      let errorData = Data(buffer: data)
+      let errorData = convertToData(buffer: data)
       let errorResponse = try jsonDecoder.decode(TencentCloudAPIErrorResponse.self, from: errorData)
       throw TencentCloudAPIError.serviceError(
         code: errorResponse.error.code,
@@ -193,7 +202,7 @@ public class TencentCloudAPIClient {
       }
 
       let errorString: String
-      if let str = String(data: Data(buffer: data), encoding: .utf8) {
+      if let str = String(data: convertToData(buffer: data), encoding: .utf8) {
         errorString = str
       } else {
         errorString = "无法解析响应内容"
@@ -205,21 +214,12 @@ public class TencentCloudAPIClient {
     }
   }
 
-  /// 将ByteBuffer转换为Data
-  private func convertToData(buffer: ByteBuffer) -> Foundation.Data {
-    var buffer = buffer
-    if let bytes = buffer.readBytes(length: buffer.readableBytes) {
-      return Foundation.Data(bytes: bytes)
-    }
-    return Foundation.Data()
-  }
-
   /// 解析响应数据
   private func parseResponse<R: Decodable>(
     data: ByteBuffer,
     responseType: R.Type
   ) async throws -> R {
-    let responseData = Data(buffer: data)
+    let responseData = convertToData(buffer: data)
     do {
       let wrapperResponse = try jsonDecoder.decode(
         TencentCloudAPIResponse<R>.self, from: responseData)
