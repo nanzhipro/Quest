@@ -206,12 +206,12 @@ public class TencentCloudAPIClient {
   }
 
   /// 将ByteBuffer转换为Data
-  private func Data(buffer: ByteBuffer) -> Data {
+  private func convertToData(buffer: ByteBuffer) -> Foundation.Data {
     var buffer = buffer
     if let bytes = buffer.readBytes(length: buffer.readableBytes) {
-      return Data(bytes)
+      return Foundation.Data(bytes: bytes)
     }
-    return Data()
+    return Foundation.Data()
   }
 
   /// 解析响应数据

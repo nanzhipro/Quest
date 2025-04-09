@@ -4,7 +4,7 @@ import PackageDescription
 let package = Package(
     name: "Quest",
     platforms: [
-       .macOS(.v13)
+        .macOS(.v13)
     ],
     products: [
         .executable(
@@ -40,7 +40,7 @@ let package = Package(
         // 🤖 OpenAI SDK
         .package(url: "https://github.com/MacPaw/OpenAI.git", branch: "main"),
         // 🔑 Swift Crypto
-        .package(url: "https://github.com/apple/swift-crypto.git", "1.0.0" ..< "4.0.0"),
+        .package(url: "https://github.com/apple/swift-crypto.git", "1.0.0"..<"4.0.0"),
         // 🧰 Swift Async Algorithms
         .package(url: "https://github.com/apple/swift-async-algorithms", from: "0.1.0"),
         // 🌐 Async HTTP Client
@@ -50,7 +50,7 @@ let package = Package(
     ],
     targets: [
         .executableTarget(
-            name: "App",    
+            name: "App",
             dependencies: [
                 .product(name: "Vapor", package: "vapor"),
                 .product(name: "Fluent", package: "fluent"),
@@ -70,13 +70,13 @@ let package = Package(
         .executableTarget(
             name: "RevenueCatSignatureCLI",
             dependencies: [
-                .product(name: "Crypto", package: "swift-crypto"),
+                .product(name: "Crypto", package: "swift-crypto")
             ]
         ),
         .executableTarget(
             name: "ASRCLI",
             dependencies: [
-                .target(name: "TencentCloudAPI"),
+                .target(name: "TencentCloudAPI")
             ]
         ),
         .executableTarget(
@@ -112,16 +112,18 @@ let package = Package(
         .testTarget(
             name: "TencentCloudAPITests",
             dependencies: [
-                .target(name: "TencentCloudAPI"),
+                .target(name: "TencentCloudAPI")
             ],
             swiftSettings: swiftSettings
-        )
+        ),
     ],
     swiftLanguageModes: [.v5]
 )
 
-var swiftSettings: [SwiftSetting] { [
-    .enableUpcomingFeature("DisableOutwardActorInference"),
-    .enableExperimentalFeature("StrictConcurrency"),
-    .unsafeFlags(["-cross-module-optimization"], .when(configuration: .release))
-] }
+var swiftSettings: [SwiftSetting] {
+    [
+        .enableUpcomingFeature("DisableOutwardActorInference"),
+        .enableExperimentalFeature("StrictConcurrency"),
+        .unsafeFlags(["-cross-module-optimization"], .when(configuration: .release)),
+    ]
+}
