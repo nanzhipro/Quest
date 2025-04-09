@@ -192,10 +192,26 @@ public class TencentCloudAPIClient {
         throw error
       }
 
+      let errorString: String
+      if let str = String(data: Data(buffer: data), encoding: .utf8) {
+        errorString = str
+      } else {
+        errorString = "无法解析响应内容"
+      }
+
       throw TencentCloudAPIError.responseParsingFailed(
-        message: "HTTP状态码: \(statusCode), 无法解析错误响应: \(String(buffer: data) ?? "")"
+        message: "HTTP状态码: \(statusCode), 无法解析错误响应: \(errorString)"
       )
     }
+  }
+
+  /// 将ByteBuffer转换为Data
+  private func Data(buffer: ByteBuffer) -> Data {
+    var buffer = buffer
+    if let bytes = buffer.readBytes(length: buffer.readableBytes) {
+      return Data(bytes)
+    }
+    return Data()
   }
 
   /// 解析响应数据
