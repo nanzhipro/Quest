@@ -107,7 +107,12 @@ public func configure(_ app: Application) async throws {
   }
 
   // 配置 TLS
-  try configureTLS(app)
+  if Environment.get("ENABLE_TLS")?.lowercased() == "true" {
+    try configureTLS(app)
+  } else {
+    app.logger.info("TLS is disabled by configuration, using HTTP server")
+    fallbackToHTTP(app, reason: "TLS disabled by configuration")
+  }
 
   // 添加用户订阅迁移
   app.migrations.add(CreateUserSubscription())
@@ -175,16 +180,16 @@ private func configureTLS(_ app: Application) throws {
         "error_type": .string("\(type(of: error))"),
         "error_description": .string(error.localizedDescription),
       ])
-    fallbackToHTTP(app)
+    fallbackToHTTP(app, reason: "SSL configuration error: \(error)")
   } catch {
     // 处理其他错误
     app.logger.warning("Failed to load TLS certificates: \(error). Falling back to HTTP")
-    fallbackToHTTP(app)
+    fallbackToHTTP(app, reason: "Failed to load TLS certificates: \(error)")
   }
 }
 
 /// 降级到 HTTP 服务
-private func fallbackToHTTP(_ app: Application) {
+private func fallbackToHTTP(_ app: Application, reason: String = "TLS configuration failed") {
   app.http.server.configuration = .init(
     hostname: "0.0.0.0",
     port: 8080,
@@ -195,7 +200,7 @@ private func fallbackToHTTP(_ app: Application) {
   )
 
   app.logger.info(
-    "HTTP server configured",
+    "HTTP server configured: \(reason)",
     metadata: [
       "port": .string("8080"),
       "http_version": .string("HTTP/1.x"),

@@ -15,7 +15,7 @@ services:
       - app-network # 连接到应用网络以访问Vapor应用
     restart: always
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
       interval: 30s
       timeout: 5s
       retries: 3
