@@ -7,6 +7,9 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci
 
+# 创建public目录确保它存在
+RUN mkdir -p public
+
 # 复制应用代码
 COPY . .
 
