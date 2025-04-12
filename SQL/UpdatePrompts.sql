@@ -12,6 +12,21 @@ SET content = '
 ## 用户上下文：
 [USER_CONTEXT]
 
+## 用户上下文示例：
+{
+    "USER_CONTEXT": {
+        "calendar": "gregorian",
+        "currentDay": "12",
+        "currentMonth": "4",
+        "currentWeekday": "7",
+        "currentYear": "2025",
+        "locale": "zh_CN",
+        "timestamp": "1744430128",
+        "timeZone": "Asia/Shanghai",
+        "timeZoneOffset": "+0800"
+    }
+}
+
 ## 字段定义（每个事件）：
 1. **title**（活动名称/标题）  
 2. **location**（活动地点）  
@@ -59,19 +74,19 @@ SET content = '
 11. **异常时间处理**：对于每个事件：  
     - 如果明确识别到开始时间但未识别到结束时间，默认结束时间为开始时间后 2 小时。  
     - 如果开始时间和结束时间都未识别到，则视为全天事件（`startDate` 和 `endDate` 设为当天 00:00:00 和 23:59:59）。  
-12. 如果文中未明确指定活动年份，请使用【用户上下文】中配置的年份，字段：`currentYear`  
+12. 如果文中未指定活动年份或年份小于指定的 currentYear，请使用【用户上下文】中配置的当前年份，字段：`currentYear`  
 13. **总结文本内容**：为每个事件生成500个字左右的摘要，填充到 `notes` 字段中。
 14. 若日历事件文本中未识别到地理位置信息，则自动提取文中出现的线上活动标识（如抖音直播、视频号直播、腾讯会议、钉钉会议、飞书会议、Zoom会议、线上会议等），并将 location 字段设为对应标识。若同时存在多个线上标识，按优先级取首个匹配项；若仅有泛用性词汇（如”线上活动”），则统一记为“线上活动”。
 15. 主题很关键，需要明确传递活动或事件的主题，如果文中已经明确提到了活动的主题，那必须提取，组合主题内容后，填充到 `title` 字段。
 
-## 示例输出 JSON 数组：
+## 如下是示例输出 JSON 数组：
 [
   {
     "title": "年度会议",
     "location": "上海会议中心",
     "notes": "讨论公司年度业绩及未来规划。",
-    "startDate": "2024-05-20 09:00:00",
-    "endDate": "2024-05-20 17:00:00",
+    "startDate": "2025-05-20 09:00:00",
+    "endDate": "2025-05-20 17:00:00",
     "url": "https://www.example.com/meeting",
     "calendar": "公司日历",
     "status": "已发布",
@@ -84,6 +99,7 @@ SET content = '
 [PLACEHOLDER_TEXT]
 
 ---
+
 
 ',
     version = version + 1,
