@@ -1,5 +1,3 @@
-version: "3"
-
 services:
   nginx:
     build:
@@ -41,4 +39,4 @@ networks:
   nginx-network:
     driver: bridge
   app-network:
-    external: true # 使用已存在的应用网络，实现与现有服务的连接
+    driver: bridge
