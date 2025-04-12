@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ToastAction } from "@/components/ui/toast"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
@@ -15,15 +15,17 @@ const formSchema = z.object({
   email: z.string().email("请输入有效的邮箱地址"),
 })
 
+type FormValues = z.infer<typeof formSchema>
+
 export default function Home() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
   
-  const { register, handleSubmit, formState: { errors }, reset } = useForm({
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
   })
   
-  const onSubmit = async (data: z.infer<typeof formSchema>) => {
+  const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true)
     
     try {
@@ -75,7 +77,7 @@ export default function Home() {
                   {...register("email")}
                 />
                 {errors.email && (
-                  <p className="text-sm text-red-500">{errors.email.message}</p>
+                  <p className="text-sm text-red-500">{String(errors.email.message)}</p>
                 )}
               </div>
             </div>

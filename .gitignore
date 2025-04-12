@@ -72,3 +72,6 @@ ssl/
 *.crt
 *.key
 *.pem
+
+node_modules/
+.next/
