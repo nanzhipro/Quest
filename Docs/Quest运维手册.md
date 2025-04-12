@@ -69,7 +69,12 @@ SELECT * FROM _fluent_migrations;
 
 ```
 
-6. 更新数据库，如prompts表。
+6.使用 update-prompt Vapor命令来更新prompts 表：
 
-> Docs/UpdatePrompts.sql
-> 需要修改一下对应的id值。
+> 直接更新内容
+docker compose exec app swift run App update-prompt --content "新的提示内容"
+
+> 读取容器内文件，更新数据表
+docker compose exec app swift run App update-prompt --file ./Resources/Prompts/default.md
+
+[详细参考](./Docker%20环境下%20UpdatePromptCommand%20命令运维手册.md)
