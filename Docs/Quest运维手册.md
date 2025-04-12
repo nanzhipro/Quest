@@ -70,11 +70,13 @@ SELECT * FROM _fluent_migrations;
 ```
 
 6.使用 update-prompt Vapor命令来更新prompts 表：
-
-> 直接更新内容
-docker compose exec app swift run App update-prompt --content "新的提示内容"
-
-> 读取容器内文件，更新数据表
-docker compose exec app swift run App update-prompt --file ./Resources/Prompts/default.md
+进入容器：
+docker ps
+docker exec -it CONTAINER_ID /bin/bash
+cd /app
+./App update-prompt --file ./Resources/Prompts/default.md
 
 [详细参考](./Docker%20环境下%20UpdatePromptCommand%20命令运维手册.md)
+
+7. 查看日志
+查看实时日历： docker compose logs -f

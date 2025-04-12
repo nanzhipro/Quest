@@ -99,6 +99,7 @@ public func configure(_ app: Application) async throws {
   // 注释掉数据库迁移，使用内存存储进行测试
   app.migrations.add(CreatePrompt())
   app.migrations.add(CreateUserSubscription())
+  app.migrations.add(CreateWaitlistEntry())
 
   // 添加自动迁移（仅限开发环境）
   if app.environment == .development {
@@ -118,6 +119,7 @@ public func configure(_ app: Application) async throws {
   try routes(app)
   try app.register(collection: PromptController(promptService: DatabasePromptService(db: app.db)))
   try app.register(collection: ConfigController())
+  try app.register(collection: WaitlistController())
 }
 
 private func configureTLS(_ app: Application) throws {

@@ -12,7 +12,7 @@ struct ConfigController: RouteCollection {
         let config = routes.grouped("api", "v1", "config")
         config.get(use: getConfig)
     }
-    
+
     func getConfig(req: Request) async throws -> AppConfig {
         try AppConfig.load(from: req.application.environment)
     }

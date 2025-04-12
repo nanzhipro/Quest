@@ -1,0 +1,44 @@
+version: "3"
+
+services:
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile.nginx
+    ports:
+      - "443:443"
+      - "80:80" # HTTP重定向到HTTPS
+    volumes:
+      - ./Docs/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - frontend
+    networks:
+      - nginx-network
+      - app-network # 连接到应用网络以访问Vapor应用
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    networks:
+      - nginx-network
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+networks:
+  nginx-network:
+    driver: bridge
+  app-network:
+    external: true # 使用已存在的应用网络，实现与现有服务的连接
