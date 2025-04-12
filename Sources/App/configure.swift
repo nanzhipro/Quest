@@ -100,6 +100,7 @@ public func configure(_ app: Application) async throws {
   app.migrations.add(CreatePrompt())
   app.migrations.add(CreateUserSubscription())
   app.migrations.add(CreateWaitlistEntry())
+  app.migrations.add(CreatePremiumDeviceWhitelist())
 
   // 添加自动迁移（仅限开发环境）
   if app.environment == .development {
@@ -119,12 +120,14 @@ public func configure(_ app: Application) async throws {
 
   // 注册命令
   app.asyncCommands.use(UpdatePromptCommand(), as: "update-prompt")
+  app.asyncCommands.use(DeviceWhitelistCommand(), as: "device-whitelist")
 
   // register routes
   try routes(app)
   try app.register(collection: PromptController(promptService: DatabasePromptService(db: app.db)))
   try app.register(collection: ConfigController())
   try app.register(collection: WaitlistController())
+  try app.register(collection: PremiumFeaturesController())
 }
 
 private func configureTLS(_ app: Application) throws {
